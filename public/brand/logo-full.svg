@@ -1,0 +1,20 @@
+<svg width="360" height="96" viewBox="0 0 360 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g2" x1="10" y1="8" x2="110" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A8D90"/>
+      <stop offset="1" stop-color="#0A676D"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8,8) scale(0.16)">
+    <path d="M256 70L380 120L336 146L256 114L176 146L132 120L256 70Z" fill="url(#g2)"/>
+    <path d="M182 190C182 157 209 130 242 130H270C303 130 330 157 330 190V220H182V190Z" fill="url(#g2)"/>
+    <rect x="120" y="204" width="272" height="232" rx="56" fill="url(#g2)"/>
+    <rect x="156" y="248" width="200" height="120" rx="34" fill="white" fill-opacity="0.08"/>
+    <rect x="226" y="322" width="60" height="78" rx="16" fill="url(#g2)"/>
+    <path d="M156 240C138 272 128 308 128 346V430H88V342C88 294 104 250 132 214L156 240Z" fill="url(#g2)"/>
+    <path d="M356 240C374 272 384 308 384 346V430H424V342C424 294 408 250 380 214L356 240Z" fill="url(#g2)"/>
+  </g>
+  <text x="100" y="60" fill="#0A676D" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1">
+    Allpanga
+  </text>
+</svg>
