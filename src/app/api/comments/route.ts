@@ -7,260 +7,260 @@ import { deliverTargetedNotifications } from '@/lib/notification-delivery'
 type AdminClient = ReturnType<typeof createAdminClient>
 const PUBLIC_AUTHOR_SELECT = 'id, username, full_name, avatar_url'
 const COMMENTS_SELECT = `
-  id,
-  author_id,
-  content,
-  parent_id,
-  listing_id,
-  blog_id,
-  post_id,
-  moderation,
-  rejection_note,
-  is_pinned,
-  is_anonymous,
-  like_count,
-  created_at,
-  updated_at,
-  author:profiles!author_id(${PUBLIC_AUTHOR_SELECT})
+ id,
+ author_id,
+ content,
+ parent_id,
+ listing_id,
+ blog_id,
+ post_id,
+ moderation,
+ rejection_note,
+ is_pinned,
+ is_anonymous,
+ like_count,
+ created_at,
+ updated_at,
+ author:profiles!author_id(${PUBLIC_AUTHOR_SELECT})
 `
 const DEFAULT_PAGE_SIZE = 50
 const MAX_PAGE_SIZE = 100
 
 function parsePositiveInteger(value: string | null, fallback: number) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
-  return Math.floor(parsed)
+ const parsed = Number(value)
+ if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+ return Math.floor(parsed)
 }
 
 async function canCommentOnTarget(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  admin: AdminClient | null,
-  userId: string,
-  target: { listing_id?: string | null; blog_id?: string | null; post_id?: string | null }
+ supabase: Awaited<ReturnType<typeof createClient>>,
+ admin: AdminClient | null,
+ userId: string,
+ target: { listing_id?: string | null; blog_id?: string | null; post_id?: string | null }
 ) {
-  const { listing_id, blog_id, post_id } = target
+ const { listing_id, blog_id, post_id } = target
 
-  if (listing_id) {
-    const { data: publicListing, error: publicError } = await supabase
-      .from('listings')
-      .select('id, seller_id, moderation, status')
-      .eq('id', listing_id)
-      .in('status', ['available', 'reserved'])
-      .maybeSingle()
+ if (listing_id) {
+ const { data: publicListing, error: publicError } = await supabase
+ .from('listings')
+ .select('id, seller_id, moderation, status')
+ .eq('id', listing_id)
+ .in('status', ['available', 'reserved'])
+ .maybeSingle()
 
-    if (publicError) console.error('canCommentOnTarget publicListing error:', publicError)
-    
-    // Listing must be approved to be visible/commentable by public
-    if (publicListing && publicListing.moderation === 'approved') return true
+ if (publicError) console.error('canCommentOnTarget publicListing error:', publicError)
+ 
+ // Listing must be approved to be visible/commentable by public
+ if (publicListing && publicListing.moderation === 'approved') return true
 
-    // Non-approved/seller-only listing found? 
-    // Check if current user is the owner
-    const { data: ownListing, error: ownError } = await supabase
-      .from('listings')
-      .select('id')
-      .eq('id', listing_id)
-      .eq('seller_id', userId)
-      .maybeSingle()
-    
-    if (ownError) console.error('canCommentOnTarget ownListing error:', ownError)
-    if (ownListing) return true
-    
-    console.warn(`canCommentOnTarget: Access denied for user ${userId} on listing ${listing_id}. Listing approved: ${publicListing?.moderation === 'approved'}, Is Owner: ${!!ownListing}`)
-    return false
-  }
+ // Non-approved/seller-only listing found? 
+ // Check if current user is the owner
+ const { data: ownListing, error: ownError } = await supabase
+ .from('listings')
+ .select('id')
+ .eq('id', listing_id)
+ .eq('seller_id', userId)
+ .maybeSingle()
+ 
+ if (ownError) console.error('canCommentOnTarget ownListing error:', ownError)
+ if (ownListing) return true
+ 
+ console.warn(`canCommentOnTarget: Access denied for user ${userId} on listing ${listing_id}. Listing approved: ${publicListing?.moderation === 'approved'}, Is Owner: ${!!ownListing}`)
+ return false
+ }
 
-  if (blog_id) {
-    const { data: publicBlog, error: publicError } = await supabase
-      .from('blogs')
-      .select('id')
-      .eq('id', blog_id)
-      .eq('moderation', 'approved')
-      .maybeSingle()
-    if (publicError) throw publicError
-    if (publicBlog) return true
+ if (blog_id) {
+ const { data: publicBlog, error: publicError } = await supabase
+ .from('blogs')
+ .select('id')
+ .eq('id', blog_id)
+ .eq('moderation', 'approved')
+ .maybeSingle()
+ if (publicError) throw publicError
+ if (publicBlog) return true
 
-    const { data: ownBlog, error: ownError } = await supabase
-      .from('blogs')
-      .select('id')
-      .eq('id', blog_id)
-      .eq('author_id', userId)
-      .maybeSingle()
-    if (ownError) throw ownError
-    if (ownBlog) return true
+ const { data: ownBlog, error: ownError } = await supabase
+ .from('blogs')
+ .select('id')
+ .eq('id', blog_id)
+ .eq('author_id', userId)
+ .maybeSingle()
+ if (ownError) throw ownError
+ if (ownBlog) return true
 
-    if (admin) {
-      const { data: adminBlog, error: adminError } = await admin
-        .from('blogs')
-        .select('id')
-        .eq('id', blog_id)
-        .maybeSingle()
-      if (adminError) throw adminError
-      return !!adminBlog
-    }
+ if (admin) {
+ const { data: adminBlog, error: adminError } = await admin
+ .from('blogs')
+ .select('id')
+ .eq('id', blog_id)
+ .maybeSingle()
+ if (adminError) throw adminError
+ return !!adminBlog
+ }
 
-    return false
-  }
+ return false
+ }
 
-  if (post_id) {
-    const { data: publicPost, error: publicPostError } = await supabase
-      .from('posts')
-      .select('id, community_id')
-      .eq('id', post_id)
-      .eq('moderation', 'approved')
-      .maybeSingle()
-    if (publicPostError) throw publicPostError
-    if (publicPost) {
-      if (!publicPost.community_id) return true
-      const { data: community, error: communityError } = await supabase
-        .from('communities')
-        .select('id')
-        .eq('id', publicPost.community_id)
-        .eq('moderation', 'approved')
-        .maybeSingle()
-      if (communityError) throw communityError
-      if (community) return true
-    }
+ if (post_id) {
+ const { data: publicPost, error: publicPostError } = await supabase
+ .from('posts')
+ .select('id, community_id')
+ .eq('id', post_id)
+ .eq('moderation', 'approved')
+ .maybeSingle()
+ if (publicPostError) throw publicPostError
+ if (publicPost) {
+ if (!publicPost.community_id) return true
+ const { data: community, error: communityError } = await supabase
+ .from('communities')
+ .select('id')
+ .eq('id', publicPost.community_id)
+ .eq('moderation', 'approved')
+ .maybeSingle()
+ if (communityError) throw communityError
+ if (community) return true
+ }
 
-    const { data: ownPost, error: ownPostError } = await supabase
-      .from('posts')
-      .select('id')
-      .eq('id', post_id)
-      .eq('author_id', userId)
-      .maybeSingle()
-    if (ownPostError) throw ownPostError
-    if (ownPost) return true
+ const { data: ownPost, error: ownPostError } = await supabase
+ .from('posts')
+ .select('id')
+ .eq('id', post_id)
+ .eq('author_id', userId)
+ .maybeSingle()
+ if (ownPostError) throw ownPostError
+ if (ownPost) return true
 
-    if (admin) {
-      const { data: adminPost, error: adminPostError } = await admin
-        .from('posts')
-        .select('id')
-        .eq('id', post_id)
-        .maybeSingle()
-      if (adminPostError) throw adminPostError
-      return !!adminPost
-    }
-  }
+ if (admin) {
+ const { data: adminPost, error: adminPostError } = await admin
+ .from('posts')
+ .select('id')
+ .eq('id', post_id)
+ .maybeSingle()
+ if (adminPostError) throw adminPostError
+ return !!adminPost
+ }
+ }
 
-  return false
+ return false
 }
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const listingId = searchParams.get('listing_id')
-    const blogId = searchParams.get('blog_id')
-    const postId = searchParams.get('post_id')
-    const cursor = searchParams.get('cursor')
-    const limit = Math.min(parsePositiveInteger(searchParams.get('limit'), DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE)
-    
-    const targetCount = [listingId, blogId, postId].filter(Boolean).length
-    if (targetCount !== 1) {
-      return NextResponse.json({ error: 'Exactly one of listing_id, blog_id, or post_id is required.' }, { status: 400 })
-    }
+ try {
+ const { searchParams } = new URL(request.url)
+ const listingId = searchParams.get('listing_id')
+ const blogId = searchParams.get('blog_id')
+ const postId = searchParams.get('post_id')
+ const cursor = searchParams.get('cursor')
+ const limit = Math.min(parsePositiveInteger(searchParams.get('limit'), DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE)
+ 
+ const targetCount = [listingId, blogId, postId].filter(Boolean).length
+ if (targetCount !== 1) {
+ return NextResponse.json({ error: 'Exactly one of listing_id, blog_id, or post_id is required.' }, { status: 400 })
+ }
 
-    const supabase = await createClient()
-    let query = supabase
-      .from('comments')
-      .select(COMMENTS_SELECT)
-      .eq('moderation', 'approved')
+ const supabase = await createClient()
+ let query = supabase
+ .from('comments')
+ .select(COMMENTS_SELECT)
+ .eq('moderation', 'approved')
 
-    if (listingId) query = query.eq('listing_id', listingId)
-    if (blogId) query = query.eq('blog_id', blogId)
-    if (postId) query = query.eq('post_id', postId)
+ if (listingId) query = query.eq('listing_id', listingId)
+ if (blogId) query = query.eq('blog_id', blogId)
+ if (postId) query = query.eq('post_id', postId)
 
-    // Cursor Pagination
-    if (cursor) {
-      query = query.lt('created_at', cursor)
-    }
+ // Cursor Pagination
+ if (cursor) {
+ query = query.lt('created_at', cursor)
+ }
 
-    const { data, error } = await query
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit)
+ const { data, error } = await query
+ .order('is_pinned', { ascending: false })
+ .order('created_at', { ascending: false })
+ .limit(limit)
 
-    if (error) throw error
+ if (error) throw error
 
-    const nextCursor = data.length === limit ? data[data.length - 1].created_at : null
+ const nextCursor = data.length === limit ? data[data.length - 1].created_at : null
 
-    return NextResponse.json({ 
-      data, 
-      nextCursor,
-      count: data.length,
-      error: null 
-    })
-  } catch (error: any) {
-    console.error('Comment GET API Error:', error)
-    return NextResponse.json({ data: null, error: 'Failed to process comment' }, { status: 500 })
-  }
+ return NextResponse.json({ 
+ data, 
+ nextCursor,
+ count: data.length,
+ error: null 
+ })
+ } catch (error: any) {
+ console.error('Comment GET API Error:', error)
+ return NextResponse.json({ data: null, error: 'Failed to process comment' }, { status: 500 })
+ }
 }
 
 export async function POST(request: Request) {
-  try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+ try {
+ const supabase = await createClient()
+ const {
+ data: { user },
+ } = await supabase.auth.getUser()
+ if (!user) {
+ return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+ }
 
-    const body = await request.json().catch(() => ({}))
-    const parsed = commentSchema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Validation failed', details: parsed.error.format() }, { status: 400 })
-    }
+ const body = await request.json().catch(() => ({}))
+ const parsed = commentSchema.safeParse(body)
+ if (!parsed.success) {
+ return NextResponse.json({ error: 'Validation failed', details: parsed.error.format() }, { status: 400 })
+ }
 
-    const { listing_id, blog_id, post_id } = parsed.data
-    const targetCount = [listing_id, blog_id, post_id].filter(Boolean).length
-    if (targetCount !== 1) {
-      return NextResponse.json({ error: 'Exactly one of listing_id, blog_id, or post_id is required.' }, { status: 400 })
-    }
+ const { listing_id, blog_id, post_id } = parsed.data
+ const targetCount = [listing_id, blog_id, post_id].filter(Boolean).length
+ if (targetCount !== 1) {
+ return NextResponse.json({ error: 'Exactly one of listing_id, blog_id, or post_id is required.' }, { status: 400 })
+ }
 
-    const { data: viewerProfile, error: viewerError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (viewerError) throw viewerError
-    const admin = viewerProfile?.role === 'admin' ? createAdminClient() : null
+ const { data: viewerProfile, error: viewerError } = await supabase
+ .from('profiles')
+ .select('role')
+ .eq('id', user.id)
+ .maybeSingle()
+ if (viewerError) throw viewerError
+ const admin = viewerProfile?.role === 'admin' ? createAdminClient() : null
 
-    const hasAccess = await canCommentOnTarget(supabase, admin, user.id, { listing_id, blog_id, post_id })
-    if (!hasAccess) {
-      console.warn('Comment POST: User has no access to target', { listing_id, blog_id, post_id, userId: user.id })
-      return NextResponse.json({ error: 'Target not found or access denied' }, { status: 404 })
-    }
+ const hasAccess = await canCommentOnTarget(supabase, admin, user.id, { listing_id, blog_id, post_id })
+ if (!hasAccess) {
+ console.warn('Comment POST: User has no access to target', { listing_id, blog_id, post_id, userId: user.id })
+ return NextResponse.json({ error: 'Target not found or access denied' }, { status: 404 })
+ }
 
-    const isAdmin = viewerProfile?.role === 'admin';
-    const finalIsAnonymous = (post_id || isAdmin) ? (parsed.data.is_anonymous || false) : false;
+ const isAdmin = viewerProfile?.role === 'admin';
+ const finalIsAnonymous = (post_id || isAdmin) ? (parsed.data.is_anonymous || false) : false;
 
-    const moderation = listing_id ? 'pending' : 'approved'
-    const { data: commentData, error: insertError } = await supabase
-      .from('comments')
-      .insert({
-        author_id: user.id,
-        content: parsed.data.content,
-        parent_id: parsed.data.parent_id,
-        listing_id: parsed.data.listing_id,
-        blog_id: parsed.data.blog_id,
-        post_id: parsed.data.post_id,
-        is_anonymous: finalIsAnonymous,
-        moderation,
-        like_count: 0,
-      })
-      .select()
-      .single()
+ const moderation = listing_id ? 'pending' : 'approved'
+ const { data: commentData, error: insertError } = await supabase
+ .from('comments')
+ .insert({
+ author_id: user.id,
+ content: parsed.data.content,
+ parent_id: parsed.data.parent_id,
+ listing_id: parsed.data.listing_id,
+ blog_id: parsed.data.blog_id,
+ post_id: parsed.data.post_id,
+ is_anonymous: finalIsAnonymous,
+ moderation,
+ like_count: 0,
+ })
+ .select()
+ .single()
 
-    if (insertError) {
-      console.error('Comment POST: Insert failed:', insertError)
-      return NextResponse.json({ error: 'Failed to save comment', details: insertError.message }, { status: 500 })
-    }
+ if (insertError) {
+ console.error('Comment POST: Insert failed:', insertError)
+ return NextResponse.json({ error: 'Failed to save comment', details: insertError.message }, { status: 500 })
+ }
 
-    // Note: Parent count updates (blog.comment_count, post.reply_count) are 
-    // now handled automatically by the 'tr_on_comment_change' trigger in Postgres.
-    
-    return NextResponse.json({ data: commentData, error: null }, { status: 201 })
-  } catch (error: any) {
-    console.error('API Error:', error)
-    return NextResponse.json({ data: null, error: 'Failed to process comment' }, { status: 500 })
-  }
+ // Note: Parent count updates (blog.comment_count, post.reply_count) are 
+ // now handled automatically by the 'tr_on_comment_change' trigger in Postgres.
+ 
+ return NextResponse.json({ data: commentData, error: null }, { status: 201 })
+ } catch (error: any) {
+ console.error('API Error:', error)
+ return NextResponse.json({ data: null, error: 'Failed to process comment' }, { status: 500 })
+ }
 }

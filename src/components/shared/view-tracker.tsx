@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react'
 
 interface ViewTrackerProps {
-  targetId: string
-  type: 'blog' | 'listing'
+ targetId: string
+ type: 'blog' | 'listing'
 }
 
 /**
@@ -12,17 +12,17 @@ interface ViewTrackerProps {
  * Using an Effect-based ping to track unique impressions without blocking SSR.
  */
 export function ViewTracker({ targetId, type }: ViewTrackerProps) {
-  const trackedRef = useRef(false)
+ const trackedRef = useRef(false)
 
-  useEffect(() => {
-    if (trackedRef.current) return
-    trackedRef.current = true
+ useEffect(() => {
+ if (trackedRef.current) return
+ trackedRef.current = true
 
-    // Non-blocking fire-and-forget request
-    fetch(`/api/views/${targetId}?type=${type}`, {
-      method: 'POST',
-    }).catch((err) => console.error('View tracking failed:', err))
-  }, [targetId, type])
+ // Non-blocking fire-and-forget request
+ fetch(`/api/views/${targetId}?type=${type}`, {
+ method: 'POST',
+ }).catch((err) => console.error('View tracking failed:', err))
+ }, [targetId, type])
 
-  return null // Ghost component
+ return null // Ghost component
 }

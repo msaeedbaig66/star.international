@@ -21,11 +21,11 @@ export function Avatar({ src, alt='avatar', fallback, size='md', className }: {
  <div className={cn('relative rounded-full overflow-hidden bg-primary-light flex-shrink-0', s.container, className)}>
  {src ? (
  <Image 
-   src={getOptimizedImageUrl(src, s.px, s.px)} 
-   alt={alt} 
-   fill 
-   className='object-cover' 
-   sizes={`${s.px}px`} 
+ src={getOptimizedImageUrl(src, s.px, s.px)} 
+ alt={alt} 
+ fill 
+ className='object-cover' 
+ sizes={`${s.px}px`} 
  />
  ) : (
  <span className={cn('flex items-center justify-center w-full h-full font-semibold text-primary', s.text)}>{initials}</span>

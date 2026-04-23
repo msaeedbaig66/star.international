@@ -9,14 +9,14 @@ import { formatRelativeTime, formatPrice, formatDate } from '@/lib/utils'
  * non-deterministic values (like relative dates).
  */
 export function HydratedOnly({ children, fallback = null }: { children: ReactNode, fallback?: ReactNode }) {
-  const [mounted, setMounted] = useState(false)
+ const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+ useEffect(() => {
+ setMounted(true)
+ }, [])
 
-  if (!mounted) return <>{fallback}</>
-  return <>{children}</>
+ if (!mounted) return <>{fallback}</>
+ return <>{children}</>
 }
 
 /**
@@ -24,11 +24,11 @@ export function HydratedOnly({ children, fallback = null }: { children: ReactNod
  * Replaces direct calls to formatRelativeTime in JSX.
  */
 export function SafeTime({ date, className }: { date: string | Date, className?: string }) {
-  return (
-    <HydratedOnly fallback={<span className={className}>...</span>}>
-      <span className={className}>{formatRelativeTime(date)}</span>
-    </HydratedOnly>
-  )
+ return (
+ <HydratedOnly fallback={<span className={className}>...</span>}>
+ <span className={className}>{formatRelativeTime(date)}</span>
+ </HydratedOnly>
+ )
 }
 
 /**
@@ -36,11 +36,11 @@ export function SafeTime({ date, className }: { date: string | Date, className?:
  * Replaces direct calls to formatPrice in JSX.
  */
 export function SafePrice({ price, className }: { price: number, className?: string }) {
-  return (
-    <HydratedOnly fallback={<span className={className}>Rs ...</span>}>
-      <span className={className}>{formatPrice(price)}</span>
-    </HydratedOnly>
-  )
+ return (
+ <HydratedOnly fallback={<span className={className}>Rs ...</span>}>
+ <span className={className}>{formatPrice(price)}</span>
+ </HydratedOnly>
+ )
 }
 
 /**
@@ -48,9 +48,9 @@ export function SafePrice({ price, className }: { price: number, className?: str
  * Replaces direct calls to formatDate (or toLocaleDateString) in JSX.
  */
 export function SafeDate({ date, className }: { date: string | Date, className?: string }) {
-  return (
-    <HydratedOnly fallback={<span className={className}>...</span>}>
-      <span className={className}>{formatDate(date)}</span>
-    </HydratedOnly>
-  )
+ return (
+ <HydratedOnly fallback={<span className={className}>...</span>}>
+ <span className={className}>{formatDate(date)}</span>
+ </HydratedOnly>
+ )
 }

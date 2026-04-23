@@ -1,18 +1,18 @@
 export const CATEGORIES = [
-  'Books', 'Notes', 'Electronics', 'Tools',
-  'Project Components', 'Lab Equipment',
-  'Fashion', 'Stationery', 'Other'
+ 'Books', 'Notes', 'Electronics', 'Tools',
+ 'Project Components', 'Lab Equipment',
+ 'Fashion', 'Stationery', 'Other'
 ] as const
 
 export const FIELDS = [
-  'Electronics', 'Mechanical', 'Computer Science',
-  'Information Technology', 'Artificial Intelligence',
-  'Textile Engineering', 'Fashion Design',
-  'Civil Engineering', 'Chemistry', 'Other'
+ 'Electronics', 'Mechanical', 'Computer Science',
+ 'Information Technology', 'Artificial Intelligence',
+ 'Textile Engineering', 'Fashion Design',
+ 'Civil Engineering', 'Chemistry', 'Other'
 ] as const
 
 export const CAMPUSES = [
-  'NTU Faisalabad', 'NTU Karachi', 'Other'
+ 'NTU Faisalabad', 'NTU Karachi', 'Other'
 ] as const
 
 export const PAGINATION_LIMIT = 24
