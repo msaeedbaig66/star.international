@@ -79,7 +79,7 @@ export function DashboardShell({ profile, activeTab, editId, threadId }: Dashboa
 
 
  return (
- <div className="flex h-full bg-[#F8FAFC] min-h-screen overflow-hidden">
+ <div className="flex h-full bg-[#F8FAFC] min-h-screen ">
  {/* Mobile Drawer Overlay */}
  {mobileOpen && (
  <div
@@ -104,9 +104,9 @@ export function DashboardShell({ profile, activeTab, editId, threadId }: Dashboa
  </div>
 
  {/* Main Content Area */}
- <div className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
+ <div className="flex-1 flex flex-col min-w-0 h-full relative ">
  {/* Dashboard Header - Always Visible Section */}
- <header className="flex items-center h-16 md:h-20 shrink-0 border-b border-slate-200/50 bg-white/70 backdrop-blur-xl px-4 sm:px-8 transition-all sticky top-0 z-30">
+ <header className="flex items-center h-16 md:h-20 shrink-0 border-b border-slate-200/50 bg-white/70 backdrop-blur-xl px-4 sm:px-8 transition-all relative z-30">
  <div className="flex items-center justify-between w-full">
  <div className="flex items-center gap-4">
  <button 
@@ -150,7 +150,7 @@ export function DashboardShell({ profile, activeTab, editId, threadId }: Dashboa
  {/* Dynamic Tab Content */}
  <main className={cn(
  'flex-1 overflow-x-hidden relative',
- activeTab === 'messages' ? 'h-full overflow-hidden' : 'p-4 sm:p-8 lg:p-12 pb-12 overflow-y-auto'
+ activeTab === 'messages' ? 'h-full overflow-hidden' : 'p-4 sm:p-8 lg:p-12 pb-12'
  )}>
  <div className={cn(
  "w-full h-full",

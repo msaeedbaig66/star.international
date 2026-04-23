@@ -42,13 +42,13 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  .eq('id', params.id)
  .single(),
  user 
- ? supabase.from('profiles').select('role').eq('id', user.id).maybeSingle() 
+ ? supabase.from('profiles').select('*').eq('id', user.id).maybeSingle() 
  : Promise.resolve({ data: null })
  ]);
 
  const listing = listingRes.data;
  const listingError = listingRes.error;
- const viewerProfile = viewerRes.data;
+ const currentUserProfile = viewerRes.data;
 
  if (listingError || !listing) {
  if (listingError) {
@@ -59,7 +59,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
 
  // Allow owner, admin, or buyer (if approved) to view
  const isOwner = user?.id === listing.seller_id;
- const isAdmin = viewerProfile?.role === 'admin';
+ const isAdmin = currentUserProfile?.role === 'admin';
 
  const canView = isOwner || isAdmin || (listing.moderation === 'approved' && listing.status === 'available');
 
@@ -68,6 +68,22 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  }
 
  const listingType = (listing.listing_type || 'sell') as 'sell' | 'rent' | 'both';
+
+ // Construct comment filter: approved OR authored by current user (if any)
+ // Admins see all comments
+ let commentsQuery = supabase
+ .from('comments')
+ .select('id, content, created_at, moderation, author_id, author:profiles!author_id(full_name, avatar_url, username)')
+ .eq('listing_id', listing.id)
+ .is('parent_id', null);
+
+ if (isAdmin) {
+ // No extra filter
+ } else if (user) {
+ commentsQuery = commentsQuery.or(`moderation.eq.approved,author_id.eq.${user.id}`);
+ } else {
+ commentsQuery = commentsQuery.eq('moderation', 'approved');
+ }
 
  const [
  relatedItemsRes,
@@ -83,7 +99,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  supabase.from('listings').select(RELATED_ITEMS_SELECT).eq('category', listing.category).neq('id', listing.id).eq('moderation', 'approved').eq('status', 'available').limit(3),
  supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', listing.seller_id),
  supabase.from('ratings').select('id, score, created_at, reviewer:profiles!reviewer_id(full_name, avatar_url, username)').eq('listing_id', listing.id).order('created_at', { ascending: false }),
- supabase.from('comments').select('id, content, created_at, author:profiles!author_id(full_name, avatar_url, username)').eq('listing_id', listing.id).eq('moderation', 'approved').is('parent_id', null).order('created_at', { ascending: false }),
+ commentsQuery.order('created_at', { ascending: false }),
  supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', listing.seller_id),
  supabase.from('ratings').select('score').eq('subject_id', listing.seller_id),
  user ? supabase.from('wishlist').select('id').eq('user_id', user.id).eq('listing_id', listing.id).maybeSingle() : Promise.resolve({ data: null }),
@@ -230,7 +246,8 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  canComment={!!user}
  ratings={listingRatings || []}
  comments={comments || []}
- viewerRole={viewerProfile?.role}
+ viewerRole={currentUserProfile?.role}
+ currentUser={currentUserProfile}
  />
  </div>
  </div>

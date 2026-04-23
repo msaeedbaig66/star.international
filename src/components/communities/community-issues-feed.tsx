@@ -122,10 +122,13 @@ export function CommunityIssuesFeed({
  }
 
  const openThread = async (postId: string) => {
+ // If we are in initialExpandedId (thread view), don't allow closing
+ if (initialExpandedId === postId) return
+
  const next = expandedPostId === postId ? null : postId
  setExpandedPostId(next)
  if (next) {
- await loadPostComments(postId)
+ 
  }
  }
 
@@ -144,6 +147,27 @@ export function CommunityIssuesFeed({
  : (postDrafts[postId] || '').trim()
 
  if (!content) return
+
+ // Optimistic Update
+ const tempId = `temp-${Date.now()}`
+ const newComment = {
+ id: tempId,
+ post_id: postId,
+ parent_id: parentId || null,
+ content,
+ created_at: new Date().toISOString(),
+ is_anonymous: isAnonymous || false,
+ author: {
+ full_name: 'You',
+ avatar_url: null,
+ username: 'me'
+ },
+ like_count: 0,
+ isLiked: false,
+ moderation: 'pending'
+ }
+
+ setComments(prev => [newComment, ...prev])
 
  try {
  if (parentId) setSubmittingReplyForCommentId(parentId)
@@ -168,15 +192,17 @@ export function CommunityIssuesFeed({
  if (parentId) {
  setReplyDrafts((prev) => ({ ...prev, [parentId]: '' }))
  setReplyingToCommentId(null)
- toast.success('Reply posted')
  } else {
  setPostDrafts((prev) => ({ ...prev, [postId]: '' }))
- toast.success('Comment posted')
  }
 
- await loadPostComments(postId)
+ const json = await res.json()
+ if (json.data) {
+ setComments(prev => prev.map(c => c.id === tempId ? json.data : c))
+ }
  } catch (error: any) {
  toast.error(error?.message || 'Unable to post')
+ setComments(prev => prev.filter(c => c.id !== tempId))
  } finally {
  if (parentId) setSubmittingReplyForCommentId(null)
  else setSubmittingForPostId(null)
@@ -190,7 +216,7 @@ export function CommunityIssuesFeed({
  const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' })
  if (!res.ok) throw new Error('Failed to delete comment')
  toast.success('Comment deleted')
- await loadPostComments(postId)
+ 
  setConfirmDeleteId(null)
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete')
@@ -672,40 +698,47 @@ export function CommunityIssuesFeed({
  <span className="material-symbols-outlined text-xl">account_circle</span>
  </div>
  <div className="flex-1 space-y-4">
- <textarea
+ <textarea onClick={(e) => e.stopPropagation()}
  value={postDrafts[post.id] || ''}
  onChange={(e) => setPostDrafts((prev) => ({ ...prev, [post.id]: e.target.value.slice(0, 500) }))}
  className="w-full bg-surface border-none rounded-2xl p-4 text-sm focus:ring-0 placeholder:text-text-muted font-medium min-h-[100px] resize-none"
  placeholder={canInteract ? 'Add your perspective or help with this issue...' : 'Please join the community to discuss this issue.'}
  disabled={!canInteract || submittingForPostId === post.id}
  />
- <div className="flex flex-col gap-4 pt-2">
- <div className="flex items-center justify-between">
- <span className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
- {(postDrafts[post.id] || '').length}/500 chars
- </span>
- <button
- type="button"
- onClick={() => setIsAnonymousReply(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
- className={cn(
- "flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest border transition-all",
- isAnonymousReply[post.id] ? "bg-slate-800 text-white border-slate-800" : "bg-white text-text-muted border-border"
- )}
- >
- <span className="material-symbols-outlined text-[12px] md:text-[14px]">
- {isAnonymousReply[post.id] ? 'visibility_off' : 'visibility'}
- </span>
- {isAnonymousReply[post.id] ? 'Anon' : 'Public'}
- </button>
- </div>
- <button
- onClick={() => createComment({ postId: post.id, isAnonymous: isAnonymousReply[post.id] })}
- disabled={submittingForPostId === post.id || !(postDrafts[post.id] || '').trim()}
- className="w-full px-8 py-3 rounded-full bg-primary text-white text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all disabled:opacity-50"
- >
- {submittingForPostId === post.id ? 'Sending...' : 'Post Reply'}
- </button>
- </div>
+  <div className="flex flex-col gap-4 pt-2">
+  <div className="flex items-center justify-between">
+  <span className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
+  {(postDrafts[post.id] || '').length}/500 chars
+  </span>
+  <div className="flex items-center gap-2">
+  {!canInteract && currentUserId && (
+  <span className="text-[8px] md:text-[9px] font-black text-rose-500 uppercase tracking-tight bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+  Join Community to Reply
+  </span>
+  )}
+  <button
+  type="button"
+  onClick={() => setIsAnonymousReply(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+  className={cn(
+  "flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest border transition-all",
+  isAnonymousReply[post.id] ? "bg-slate-800 text-white border-slate-800" : "bg-white text-text-muted border-border"
+  )}
+  >
+  <span className="material-symbols-outlined text-[12px] md:text-[14px]">
+  {isAnonymousReply[post.id] ? 'visibility_off' : 'visibility'}
+  </span>
+  {isAnonymousReply[post.id] ? 'Anon' : 'Public'}
+  </button>
+  </div>
+  </div>
+  <button
+  onClick={() => createComment({ postId: post.id, isAnonymous: isAnonymousReply[post.id] })}
+  disabled={submittingForPostId === post.id || !(postDrafts[post.id] || '').trim()}
+  className="w-full px-8 py-3 rounded-full bg-primary text-white text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all disabled:opacity-50"
+  >
+  {submittingForPostId === post.id ? 'Sending...' : 'Post Reply'}
+  </button>
+  </div>
  </div>
  </div>
  </div>
@@ -895,7 +928,7 @@ export function CommunityIssuesFeed({
  {/* Inline Reply Form */}
  {replyingToCommentId === comment.id && (
  <div className="mt-6 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
- <textarea
+ <textarea onClick={(e) => e.stopPropagation()}
  value={replyDrafts[comment.id] || ''}
  onChange={(e) =>
  setReplyDrafts((prev) => ({ ...prev, [comment.id]: e.target.value.slice(0, 500) }))

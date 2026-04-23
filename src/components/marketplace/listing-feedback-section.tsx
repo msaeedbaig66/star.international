@@ -11,78 +11,107 @@ import { ROUTES } from '@/lib/routes'
 import { UserLink } from '@/components/shared/navigation-links'
 
 interface ListingFeedbackSectionProps {
- listingId: string
- canComment: boolean
- ratings: any[]
- comments: any[]
- viewerRole?: string
+  listingId: string
+  canComment: boolean
+  ratings: any[]
+  comments: any[]
+  viewerRole?: string
+  currentUser?: any
 }
 
 export function ListingFeedbackSection({
- listingId,
- canComment,
- ratings,
- comments,
- viewerRole,
+  listingId,
+  canComment,
+  ratings,
+  comments,
+  viewerRole,
+  currentUser,
 }: ListingFeedbackSectionProps) {
- const router = useRouter()
- const [comment, setComment] = useState('')
- const [isAnonymous, setIsAnonymous] = useState(false)
- const [submitting, setSubmitting] = useState(false)
+  const router = useRouter()
+  const [localComments, setLocalComments] = useState<any[]>(comments)
+  const [comment, setComment] = useState('')
+  const [isAnonymous, setIsAnonymous] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
- const ratingStats = useMemo(() => {
- const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>
- for (const r of ratings) {
- const score = Number(r.score || 0)
- if (score >= 1 && score <= 5) counts[score] += 1
- }
- const total = ratings.length
- const avg = total > 0
- ? (ratings.reduce((sum, r) => sum + Number(r.score || 0), 0) / total).toFixed(1)
- : '0.0'
+  // Sync with prop updates
+  useMemo(() => {
+    setLocalComments(comments)
+  }, [comments])
 
- return { counts, total, avg }
- }, [ratings])
+  const ratingStats = useMemo(() => {
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>
+    for (const r of ratings) {
+      const score = Number(r.score || 0)
+      if (score >= 1 && score <= 5) counts[score] += 1
+    }
+    const total = ratings.length
+    const avg = total > 0
+      ? (ratings.reduce((sum, r) => sum + Number(r.score || 0), 0) / total).toFixed(1)
+      : '0.0'
 
- const handleSubmitComment = async () => {
- if (!canComment) {
- window.location.href = ROUTES.auth.login()
- return
- }
+    return { counts, total, avg }
+  }, [ratings])
 
- const content = comment.trim()
- if (!content) return
+  const handleSubmitComment = async () => {
+    if (!canComment) {
+      window.location.href = ROUTES.auth.login()
+      return
+    }
 
- setSubmitting(true)
- try {
- const res = await fetch('/api/comments', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- content,
- listing_id: listingId,
- is_anonymous: isAnonymous
- }),
- })
+    const content = comment.trim()
+    if (!content) return
 
- if (!res.ok) {
- if (res.status === 401) {
- window.location.href = ROUTES.auth.login()
- return
- }
- const data = await res.json().catch(() => ({}))
- throw new Error(data?.error || 'Failed to submit comment')
- }
+    setSubmitting(true)
+    
+    // Create optimistic comment
+    const optimisticComment = {
+      id: `temp-${Date.now()}`,
+      content,
+      created_at: new Date().toISOString(),
+      is_anonymous: isAnonymous,
+      author: currentUser || { 
+        full_name: 'You', 
+        avatar_url: null, 
+        username: 'me' 
+      },
+      moderation: 'pending' // Visual indicator or just show it
+    }
 
- setComment('')
- toast.success('Comment submitted for review')
- router.refresh()
- } catch (error: any) {
- toast.error(error?.message || 'Unable to submit comment')
- } finally {
- setSubmitting(false)
- }
- }
+    // Add to local state immediately
+    setLocalComments(prev => [optimisticComment, ...prev])
+    setComment('')
+
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          listing_id: listingId,
+          is_anonymous: isAnonymous
+        }),
+      })
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = ROUTES.auth.login()
+          return
+        }
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Failed to submit comment')
+      }
+
+      toast.success('Comment submitted for review')
+      // router.refresh() // No refresh needed, we have it locally
+    } catch (error: any) {
+      toast.error(error?.message || 'Unable to submit comment')
+      // Rollback optimistic update
+      setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id))
+      setComment(content) // Restore text
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
  return (
  <section className="space-y-10">
@@ -153,17 +182,24 @@ export function ListingFeedbackSection({
  </div>
 
  <div className="space-y-3">
- {comments.length === 0 ? (
+ {localComments.length === 0 ? (
  <p className="text-sm text-on-surface-variant">No comments yet.</p>
  ) : (
- comments.slice(0, 20).map((c) => (
+ localComments.slice(0, 20).map((c) => (
  <div key={c.id} className="border border-border rounded-lg p-4 bg-white">
+ <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
  <UserLink user={c.author} size="sm" showName={false} isAnonymous={c.is_anonymous} viewerRole={viewerRole} />
  <div>
  <UserLink user={c.author} showAvatar={false} size="sm" isAnonymous={c.is_anonymous} className="font-bold text-sm text-on-surface hover:text-primary transition-colors" viewerRole={viewerRole} />
  <SafeTime date={c.created_at} className="block text-[11px] text-on-surface-variant font-medium uppercase tracking-wider mt-0.5" />
  </div>
+ </div>
+ {c.moderation === 'pending' && (
+ <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 animate-pulse">
+ Pending Review
+ </span>
+ )}
  </div>
  <p className="text-sm text-on-surface-variant mt-3 whitespace-pre-wrap">{c.content}</p>
  </div>

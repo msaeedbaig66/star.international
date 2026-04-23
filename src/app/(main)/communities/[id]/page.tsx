@@ -101,7 +101,7 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
  .order('created_at', { ascending: true }),
  user 
  ? supabase
- .from('comment_likes')
+ .from('likes')
  .select('comment_id')
  .eq('user_id', user.id)
  : Promise.resolve({ data: [] })

@@ -74,6 +74,33 @@ export function UserLink({
  isAnonymous = false,
  viewerRole
 }: UserLinkProps) {
+  if (!user) {
+    return (
+      <div className={cn("inline-flex items-center gap-2 h-fit opacity-50", className)}>
+        {showAvatar && (
+          <div className={cn("rounded-full bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden", 
+            size === 'xs' ? 'w-6 h-6 text-[8px]' : 
+            size === 'sm' ? 'w-8 h-8 text-xs' : 
+            size === 'md' ? 'w-10 h-10 text-sm' : 
+            'w-14 h-14 text-base'
+          )}>
+            <span className="material-symbols-outlined text-[1.25em]">person_off</span>
+          </div>
+        )}
+        {!avatarOnly && showName && (
+          <span className={cn("font-bold text-slate-400 italic", 
+            size === 'xs' ? 'text-[10px]' : 
+            size === 'sm' ? 'text-xs' : 
+            size === 'md' ? 'text-sm' : 
+            'text-base'
+          )}>
+            Deleted User
+          </span>
+        )}
+      </div>
+    );
+  }
+
  const sizeMap = {
  xs: 'w-6 h-6 text-[8px]',
  sm: 'w-8 h-8 text-xs',

@@ -87,7 +87,7 @@ export async function GET(request: Request) {
  })
  } catch (error: any) {
  console.error('Blog GET API Error:', error)
- return NextResponse.json({ data: null, error: 'Failed to process blog request' }, { status: 500 })
+ return NextResponse.json({ data: null, error: error.message || 'Failed to process blog request' }, { status: 500 })
  }
 }
 
@@ -110,12 +110,12 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: 'Validation failed', details: result.error.format() }, { status: 400 })
  }
 
- const { title, content, excerpt, cover_image, images, tags, field, community_id } = result.data
+ const { title, content, excerpt, cover_image, images, tags, field, community_id, is_official } = result.data
 
  // 2.5 Check Blog Usage & Image Limits
  const { data: profile, error: profileError } = await supabase
  .from('profiles')
- .select('blog_slot_limit, blog_image_limit')
+ .select('blog_slot_limit, blog_image_limit, role')
  .eq('id', user.id)
  .single()
 
@@ -193,10 +193,10 @@ export async function POST(request: Request) {
  tags,
  field,
  community_id,
- moderation: 'pending',
+ moderation: (profile as any)?.role === 'admin' ? 'approved' : 'pending',
  view_count: 0,
  like_count: 0,
- comment_count: 0
+ comment_count: 0, is_official: (profile as any)?.role === 'admin' ? is_official : false
  })
  .select()
  .single()
@@ -206,6 +206,6 @@ export async function POST(request: Request) {
  return NextResponse.json({ data, error: null }, { status: 201 })
  } catch (error: any) {
  console.error('API Error:', error)
- return NextResponse.json({ data: null, error: 'Failed to process blog request' }, { status: 500 })
+ return NextResponse.json({ data: null, error: error.message || 'Failed to process blog request' }, { status: 500 })
  }
 }

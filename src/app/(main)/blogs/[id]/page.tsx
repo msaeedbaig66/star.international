@@ -115,7 +115,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  supabase.from('blogs').select('id', { count: 'exact', head: true }).eq('author_id', blog.author_id).eq('moderation', 'approved'),
  user ? supabase.from('likes').select('id').eq('user_id', user.id).eq('blog_id', blog.id).maybeSingle() : Promise.resolve({ data: null }),
  user && user.id !== blog.author_id ? supabase.from('follows').select('follower_id').eq('follower_id', user.id).eq('following_id', blog.author_id).maybeSingle() : Promise.resolve({ data: null }),
- user ? supabase.from('comment_likes').select('comment_id').eq('user_id', user.id) : Promise.resolve({ data: [] })
+ user ? supabase.from('likes').select('comment_id').eq('user_id', user.id).not('comment_id', 'is', null) : Promise.resolve({ data: [] })
  ]);
 
  const isLiked = !!(userLikeRes as any)?.data;
@@ -141,7 +141,9 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  : Number(authorBlogs?.length || 0);
  const authorProfileHref = author?.username ? ROUTES.profile.view(author.username) : null;
  const safeBlogContent = sanitizeBlogHtml(blog.content || '');
- const readMinutes = Math.max(1, Math.ceil(stripHtml(safeBlogContent).split(' ').filter(Boolean).length / 180));
+  const blogDate = blog.created_at ? new Date(blog.created_at) : null;
+  const isDateValid = blogDate && !isNaN(blogDate.getTime());
+  const readMinutes = Math.max(1, Math.ceil(stripHtml(safeBlogContent).split(' ').filter(Boolean).length / 180));
  const tocItems = getTocFromContent(safeBlogContent);
  const contentWithIds = injectHeadingIds(safeBlogContent);
  const adminActionMeta = parseAdminActionNote(blog.rejection_note);
@@ -187,7 +189,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  />
  <div className="flex items-center gap-2 text-sm">
  <span className="material-symbols-outlined text-[18px]">calendar_today</span>
- <span>{format(new Date(blog.created_at), 'MMM d, yyyy')}</span>
+  <span>{isDateValid ? format(blogDate, 'MMM d, yyyy') : 'Recently Posted'}</span>
  </div>
  <div className="flex items-center gap-2 text-sm">
  <span className="material-symbols-outlined text-[18px]">schedule</span>

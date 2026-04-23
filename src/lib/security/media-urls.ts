@@ -93,7 +93,8 @@ export function isAllowedListingImageUrl(rawUrl: string, userId?: string) {
  if (!meta) {
  try {
  const u = new URL(rawUrl)
- if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith('/dukmwqsnn/')) {
+ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dukmwqsnn'
+      if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith(`/${cloudName}/`)) {
  if (userId && !rawUrl.includes(`/${userId}/`)) return false
  return true
  }
@@ -114,7 +115,8 @@ export function isAllowedBlogImageUrl(rawUrl: string, userId?: string) {
  if (!meta) {
  try {
  const u = new URL(rawUrl)
- if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith('/dukmwqsnn/')) {
+ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dukmwqsnn'
+      if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith(`/${cloudName}/`)) {
  if (userId && !rawUrl.includes(`/${userId}/`)) return false
  return true
  }
@@ -135,7 +137,8 @@ export function isAllowedCommunityImageUrl(rawUrl: string, userId?: string) {
  if (!meta) {
  try {
  const u = new URL(rawUrl)
- if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith('/dukmwqsnn/')) {
+ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dukmwqsnn'
+      if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith(`/${cloudName}/`)) {
  if (userId && !rawUrl.includes(`/${userId}/`)) return false
  return true
  }
@@ -156,7 +159,8 @@ export function isAllowedPostImageUrl(rawUrl: string, userId?: string) {
  if (!meta) {
  try {
  const u = new URL(rawUrl)
- if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith('/dukmwqsnn/')) {
+ const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dukmwqsnn'
+      if (u.hostname === 'res.cloudinary.com' && u.pathname.startsWith(`/${cloudName}/`)) {
  if (userId && !rawUrl.includes(`/${userId}/`)) return false
  return true
  }

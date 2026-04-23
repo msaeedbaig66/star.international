@@ -216,6 +216,6 @@ export async function POST(request: Request) {
  return NextResponse.json({ data, error: null }, { status: 201 })
  } catch (error: any) {
  console.error('Listings POST error:', error)
- return NextResponse.json({ data: null, error: 'Failed to create listing' }, { status: 500 })
+ return NextResponse.json({ data: null, error: error.message || 'Failed to create listing' }, { status: 500 })
  }
 }
