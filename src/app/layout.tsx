@@ -42,11 +42,8 @@ export default async function RootLayout({ children }: { children:React.ReactNod
         __html: `
           (function() {
             try {
-              var theme = localStorage.getItem('allpanga-theme');
-              var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
-              if (!theme && supportDarkMode) theme = 'dark';
-              if (!theme) theme = 'light';
-              document.documentElement.setAttribute('data-theme', theme);
+              document.documentElement.setAttribute('data-theme', 'light');
+              localStorage.setItem('allpanga-theme', 'light');
             } catch (e) {}
           })();
         `,

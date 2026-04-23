@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import dynamic from 'next/dynamic'
 const NavbarClient = dynamic(() => import('./navbar-client'), { ssr: false })
-import { ThemeToggle } from '@/components/shared/theme-toggle'
+
 
 export async function Navbar() {
   const supabase = await createClient()
@@ -96,9 +96,7 @@ export async function Navbar() {
 
             {/* Global Actions */}
             <div className="flex items-center gap-4">
-               <div className="hidden lg:flex items-center gap-1 border-r border-slate-100 dark:border-zinc-800 pr-4 mr-1">
-                  <ThemeToggle />
-               </div>
+               <div className="hidden lg:flex items-center gap-1 border-r border-slate-100 dark:border-zinc-800 pr-4 mr-1 opacity-0 pointer-events-none" />
                
                <div className="sm:hidden">
                   <NavbarClient 
