@@ -10,11 +10,14 @@ const nextConfig = {
 
   // ── Performance: enable experimental optimizations ──
   experimental: {
-    optimizePackageImports: ['recharts', 'date-fns', 'sonner', '@supabase/supabase-js'],
+    optimizePackageImports: ['recharts', 'date-fns', 'sonner', '@supabase/supabase-js', 'isomorphic-dompurify'],
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
+
+  // ── ESM Hardening: ensure ESM packages are transpiled for Node.js ──
+  transpilePackages: ['isomorphic-dompurify', 'date-fns'],
 
   async headers() {
     const securityHeaders = [
