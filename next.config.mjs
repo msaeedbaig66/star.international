@@ -17,14 +17,12 @@ const nextConfig = {
       '@supabase/supabase-js', 
       '@supabase/ssr',
       'isomorphic-dompurify',
-      'lucide-react',
       'clsx',
       'tailwind-merge'
     ],
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    serverComponentsExternalPackages: [],
   },
 
   // ── ESM Hardening: ensure ESM packages are transpiled for Node.js ──
