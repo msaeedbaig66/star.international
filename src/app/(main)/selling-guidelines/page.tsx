@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 export const metadata = { title: 'Selling Guidelines | Allpanga' }
 
@@ -139,25 +140,40 @@ export default function SellingGuidelinesPage() {
  </div>
  </section>
 
- {/* Timeline */}
- <section>
- <h2 className='text-3xl font-black text-text-primary mb-10 text-center'>After You List</h2>
- <div className='flex flex-col sm:flex-row items-center justify-between gap-4'>
- {TIMELINE.map((t, i) => (
- <div key={t.label} className='flex items-center gap-3'>
- <div className='flex flex-col items-center text-center'>
- <div className={`w-14 h-14 rounded-full ${t.color} flex items-center justify-center mb-2`}>
- <span className='material-symbols-outlined text-white text-xl' style={{ fontVariationSettings: "'FILL' 1" }}>{t.icon}</span>
- </div>
- <span className='text-xs font-black text-text-primary'>{t.label}</span>
- </div>
- {i < TIMELINE.length - 1 && (
- <span className='material-symbols-outlined text-border hidden sm:block'>arrow_forward</span>
- )}
- </div>
- ))}
- </div>
- </section>
+  {/* Timeline */}
+  <section className='relative overflow-hidden'>
+  <h2 className='text-3xl font-black text-text-primary mb-12 text-center'>After You List</h2>
+  
+  <div className='relative flex flex-col sm:flex-row justify-between gap-8 sm:gap-4 px-4'>
+  {/* Connector Lines (Desktop) */}
+  <div className='absolute top-10 left-12 right-12 h-0.5 bg-border hidden sm:block -z-10' />
+  
+  {TIMELINE.map((t, i) => (
+  <div key={t.label} className='relative flex-1 group'>
+  {/* Connector Line (Mobile) */}
+  {i < TIMELINE.length - 1 && (
+  <div className='absolute left-[31px] top-16 bottom-[-32px] w-0.5 bg-border sm:hidden' />
+  )}
+
+  <div className='flex flex-row sm:flex-col items-center gap-6 sm:gap-4'>
+  <div className={`w-16 h-16 rounded-full flex items-center justify-center shrink-0 shadow-lg transition-transform group-hover:scale-110 ${t.color} border-4 border-white`}>
+  <span className='material-symbols-outlined text-white text-2xl' style={{ fontVariationSettings: "'FILL' 1" }}>{t.icon}</span>
+  </div>
+  
+  <div className='flex flex-col sm:items-center'>
+  <span className='text-sm font-black text-text-primary uppercase tracking-wider'>{t.label}</span>
+  <p className='text-[10px] font-bold text-text-muted sm:text-center mt-0.5'>
+  {i === 0 ? 'Initial Posting' : 
+  i === 1 ? 'Verification Phase' :
+  i === 2 ? 'Safety Check Passed' :
+  i === 3 ? 'Active on Platform' : 'Deal Completed'}
+  </p>
+  </div>
+  </div>
+  </div>
+  ))}
+  </div>
+  </section>
 
  {/* Listing Lifespan */}
  <section className='bg-primary/5 rounded-3xl p-10 border border-primary/10'>

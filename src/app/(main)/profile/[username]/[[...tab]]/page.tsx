@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/lib/routes';
 import { UserLink } from '@/components/shared/navigation-links';
+import { ProfileHeaderActions } from '@/components/profile/profile-header-actions';
 
 import type { Profile } from '@/types/database';
 
@@ -350,12 +351,10 @@ export default async function ProfilePage({
                     initialIsFollowing={isFollowing}
                     initialFollowerCount={followersCount}
                   />
-                  <button className="h-12 w-12 rounded-2xl border border-border bg-white text-text-muted hover:text-primary hover:border-primary/30 transition-colors flex items-center justify-center">
-                    <span className="material-symbols-outlined">mail</span>
-                  </button>
-                  <button className="h-12 w-12 rounded-full border border-border bg-white text-text-muted hover:text-primary hover:border-primary/30 transition-colors flex items-center justify-center">
-                    <span className="material-symbols-outlined">more_horiz</span>
-                  </button>
+                  <ProfileHeaderActions 
+                    userId={profile.id} 
+                    username={profile.username}
+                  />
                 </div>
               )}
             </div>
@@ -370,10 +369,7 @@ export default async function ProfilePage({
               )}
             >
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-text-muted mb-2">Followers</p>
-              <div className="flex items-end gap-2">
                 <p className="text-4xl leading-none font-black text-[#1f3468]">{compactNumber(followersCount)}</p>
-                <p className="text-xs font-black text-emerald-600 pb-1">+{reviewsCount}</p>
-              </div>
             </Link>
 
             <Link

@@ -84,23 +84,30 @@ export async function POST(req: Request) {
  return NextResponse.json({ error: 'User not found' }, { status: 404 })
  }
 
- const { data: myThreads } = await supabase
+  // Improved lookup: Find threads the current user belongs to
+  const { data: myThreads, error: lookupError } = await supabase
  .from('thread_participants')
  .select('thread_id')
  .eq('user_id', user.id);
  
- if (myThreads && myThreads.length > 0) {
- const threadIds = myThreads.map(t => t.thread_id);
- const { data: theirThreads } = await supabase
- .from('thread_participants')
- .select('thread_id')
- .eq('user_id', targetUserId)
- .in('thread_id', threadIds);
- 
- if (theirThreads && theirThreads.length > 0) {
- return NextResponse.json({ data: { thread_id: theirThreads[0].thread_id }, error: null })
- }
- }
+  if (myThreads && myThreads.length > 0) {
+    const threadIds = myThreads.map(t => t.thread_id);
+    
+    // Check if any of those threads also include the targetUserId
+    const { data: sharedThreads, error: sharedError } = await supabase
+      .from('thread_participants')
+      .select('thread_id')
+      .in('thread_id', threadIds)
+      .eq('user_id', targetUserId);
+
+    if (sharedError) {
+      console.error('Shared thread lookup error:', sharedError);
+    }
+
+    if (sharedThreads && sharedThreads.length > 0) {
+      return NextResponse.json({ data: { thread_id: sharedThreads[0].thread_id }, error: null })
+    }
+  }
 
  const { data: newThread, error: threadError } = await supabase
  .from('message_threads')
@@ -108,7 +115,10 @@ export async function POST(req: Request) {
  .select('id')
  .single();
 
- if (threadError) throw threadError;
+ if (threadError) {
+  console.error('Thread Creation Error:', threadError);
+  throw threadError;
+ }
 
  const { error: partError } = await supabase
  .from('thread_participants')
@@ -117,12 +127,23 @@ export async function POST(req: Request) {
  { thread_id: newThread.id, user_id: targetUserId }
  ]);
  
- if (partError) throw partError;
+ if (partError) {
+  console.error('Participant Insertion Error:', partError);
+    // Cleanup
+    await supabase.from('message_threads').delete().eq('id', newThread.id);
+  throw partError;
+ }
 
  return NextResponse.json({ data: { thread_id: newThread.id }, error: null })
 
  } catch (error: any) {
- console.error('API Error:', error)
- return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
+  console.error('API Error in /api/messages:', error)
+  return NextResponse.json({ 
+  data: null, 
+  error: { 
+  message: error.message || 'Internal server error',
+  details: error.details || null
+  } 
+  }, { status: 500 })
  }
 }

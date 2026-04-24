@@ -198,7 +198,7 @@ export default function NavbarClient({
  </button>
  
  {notifOpen && (
- <div className="absolute right-0 mt-4 w-[calc(100vw-2rem)] sm:w-80 bg-white/95 border border-slate-200/50 shadow-2xl rounded-3xl overflow-hidden py-3 z-[100] animate-reveal backdrop-blur-xl">
+ <div className="fixed left-4 right-4 top-[70px] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-4 sm:w-80 bg-white/95 border border-slate-200/50 shadow-2xl rounded-3xl overflow-hidden py-3 z-[1000] animate-reveal backdrop-blur-xl">
  <div className="flex items-center justify-between px-5 pb-3 border-b border-slate-50">
  <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Activity Center</span>
  {unreadCount > 0 && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{unreadCount} New</span>}

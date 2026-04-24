@@ -60,8 +60,8 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
  sellerId: listing.seller_id,
  itemTitle: listing.title,
  quantity: formData.quantity,
- shippingAddress: formData.address,
- shippingCity: formData.city,
+ shippingAddress: isOfficePickup ? 'COLLECT FROM OFFICE' : formData.address,
+ shippingCity: isOfficePickup ? 'Faisalabad (Office)' : formData.city,
  shippingCost: shippingCostBase,
  codSurcharge: codSurcharge,
  courierService: formData.courier,
@@ -75,7 +75,7 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
  })
 
  const data = await res.json()
- if (!res.ok) throw new Error(data.error || 'Failed to place order')
+ if (!res.ok) throw new Error(data.details ? `${data.error}: ${data.details}` : (data.error || 'Failed to place order'))
  
  router.push(`/orders/success/${data.orderId}`)
  } catch (error: any) {
@@ -112,8 +112,6 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
  className="w-full p-4 bg-surface rounded-xl border border-border font-bold focus:ring-2 focus:ring-primary outline-none"
  >
  <option value="TCS">TCS (Recommended)</option>
- <option value="Leopards">Leopards Courier</option>
- <option value="MNP">M&P Courier</option>
  <option value="OFFICE">Collect from Office (Free)</option>
  </select>
  </div>

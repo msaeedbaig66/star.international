@@ -14,6 +14,7 @@ import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { ViewTracker } from '@/components/shared/view-tracker'
 import { SafeTime } from '@/components/shared/safe-time'
+import { createClient } from '@/lib/supabase/client'
 
 interface CommunityIssuesFeedProps {
  initialPosts: any[]
@@ -106,9 +107,95 @@ export function CommunityIssuesFeed({
  }
  }
 
- useEffect(() => {
- setComments(initialComments || [])
- }, [initialComments])
+  useEffect(() => {
+  setComments(initialComments || [])
+  }, [initialComments])
+
+  // Real-time synchronization
+  useEffect(() => {
+    const supabase = createClient()
+    
+    const channel = supabase
+      .channel(`community-${communityId}-realtime`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'posts',
+          filter: `community_id=eq.${communityId}`,
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // Fetch post with author profile relations
+            const { data: newPost } = await supabase
+              .from('posts')
+              .select('*, author:profiles!author_id(id,username,full_name,avatar_url,university,bio,follower_count,following_count)')
+              .eq('id', payload.new.id)
+              .single()
+            
+            if (newPost) {
+              setPosts((prev) => {
+                if (prev.some(p => p.id === newPost.id)) return prev
+                return [newPost, ...prev]
+              })
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setPosts((prev) => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p))
+          } else if (payload.eventType === 'DELETE') {
+            setPosts((prev) => prev.filter(p => p.id !== payload.old.id))
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments',
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // Fetch the new comment with author data
+            const { data: newComment } = await supabase
+              .from('comments')
+              .select('*, author:profiles!author_id(id,username,full_name,avatar_url)')
+              .eq('id', payload.new.id)
+              .single()
+            
+            if (newComment && newComment.post_id) {
+              setPosts(prevPosts => {
+                const isOurPost = prevPosts.some(p => p.id === newComment.post_id)
+                if (isOurPost) {
+                  setComments(prev => {
+                    if (prev.some(c => c.id === newComment.id)) return prev
+                    return [...prev, newComment]
+                  })
+                  // Increment reply count on the post UI
+                  return prevPosts.map(p => p.id === newComment.post_id ? { ...p, reply_count: (p.reply_count || 0) + 1 } : p)
+                }
+                return prevPosts
+              })
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setComments((prev) => prev.map(c => c.id === payload.new.id ? { ...c, ...payload.new } : c))
+          } else if (payload.eventType === 'DELETE') {
+            setComments((prev) => {
+              const comment = prev.find(c => c.id === payload.old.id)
+              if (comment) {
+                setPosts(currPosts => currPosts.map(p => p.id === comment.post_id ? { ...p, reply_count: Math.max(0, (p.reply_count || 0) - 1) } : p))
+              }
+              return prev.filter(c => c.id !== payload.old.id)
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [communityId])
 
  const commentsByPost = useMemo(() => {
  return comments.reduce((acc: Record<string, any[]>, comment: any) => {

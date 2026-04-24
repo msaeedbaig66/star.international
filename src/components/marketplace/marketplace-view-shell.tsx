@@ -40,6 +40,7 @@ export function MarketplaceViewShell({
  hideSourceToggles = false
 }: MarketplaceViewShellProps) {
  const [isSidebarOpen, setSidebarOpen] = useState(false)
+ const [isSortOpen, setSortOpen] = useState(false)
  const [isMounted, setIsMounted] = useState(false)
  const searchParams = useSearchParams()
  const pathname = usePathname()
@@ -51,6 +52,11 @@ export function MarketplaceViewShell({
  setSidebarOpen(true)
  }
  }, [])
+
+ useEffect(() => {
+   setSidebarOpen(false)
+   setSortOpen(false)
+ }, [searchParams, pathname])
 
  // Lock body scroll on mobile when sidebar is open
  useEffect(() => {
@@ -84,7 +90,7 @@ export function MarketplaceViewShell({
  
  {/* Mobile Filter Drawer (Overlapping) */}
  <div className={cn(
- "fixed inset-0 z-[1000] xl:hidden transition-all duration-500",
+ "fixed inset-0 z-[2000] xl:hidden transition-all duration-500",
  isSidebarOpen ? "visible" : "invisible"
  )}>
  {/* Backdrop */}
@@ -97,21 +103,21 @@ export function MarketplaceViewShell({
  />
  {/* Drawer Content */}
  <div className={cn(
- "absolute inset-y-0 left-0 w-[85%] max-w-[340px] bg-white shadow-2xl transition-transform duration-500 ease-buy-in-out p-6 overflow-y-auto",
- isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+  "fixed inset-y-0 left-0 w-[90%] max-w-[420px] bg-white z-[2000] shadow-2xl transition-transform duration-500 ease-buy-in-out p-6 sm:p-12 overflow-y-auto flex flex-col",
+  isSidebarOpen ? "translate-x-0" : "-translate-x-full"
  )}>
- <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
- <div className="flex items-center gap-3">
- <span className="material-symbols-outlined text-primary font-black">tune</span>
- <span className="font-black text-xs uppercase tracking-widest text-[#1f3468]">Filters</span>
- </div>
- <button 
- onClick={() => setSidebarOpen(false)}
- className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"
- >
- <span className="material-symbols-outlined text-[20px]">close</span>
- </button>
- </div>
+  <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+  <div className="flex items-center gap-3">
+  <span className="material-symbols-outlined text-primary font-black text-xl">tune</span>
+  <span className="font-black text-xs uppercase tracking-widest text-[#1f3468]">Filters</span>
+  </div>
+  <button 
+  onClick={() => setSidebarOpen(false)}
+  className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-90"
+  >
+  <span className="material-symbols-outlined text-[24px]">close</span>
+  </button>
+  </div>
  {filters}
  </div>
  </div>
@@ -127,7 +133,6 @@ export function MarketplaceViewShell({
  {/* Content Area */}
  <section className="flex-grow min-w-0">
  <div className="flex flex-col gap-6 mb-8">
- {/* Context Header */}
  {/* Context Header */}
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white border border-border shadow-sm">
  
@@ -180,34 +185,48 @@ export function MarketplaceViewShell({
  )}
 
  {/* Sort Control */}
- <div className="relative group flex-1 xs:flex-none">
- <button className="w-full xs:w-auto flex items-center justify-between xs:justify-start gap-3 bg-white border border-border px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] transition-all hover:border-primary shrink-0">
- <span className="truncate">
- {sort === 'latest' ? 'New Arrivals' : sort === 'price_low' ? 'Price Low' : sort === 'price_high' ? 'Price High' : sort === 'random' ? 'Random' : sort === 'recommended' ? 'Recommended' : 'Featured'}
- </span>
- <span className="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">expand_more</span>
- </button>
- 
- <div className="absolute right-0 top-full mt-2 w-full xs:w-48 bg-white border border-border rounded-2xl shadow-xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all z-[60] overflow-hidden">
- {[
- { l: 'New Arrivals', v: 'latest' },
- { l: 'Recommended', v: 'recommended' },
- { l: 'Random Discovery', v: 'random' },
- { l: 'Price: Low-High', v: 'price_low' },
- { l: 'Price: High-Low', v: 'price_high' },
- ].map((s) => (
- <Link
- key={s.v}
- href={`${pathname}?${createQueryString('sort', s.v)}`}
- className={cn(
- "block w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-colors",
- sort === s.v ? "text-primary bg-primary/5" : "text-text-secondary"
- )}
- >
- {s.l}
- </Link>
- ))}
- </div>
+ <div className="relative flex-1 xs:flex-none">
+   <button 
+     onClick={() => setSortOpen(!isSortOpen)}
+     className={cn(
+       "w-full xs:w-auto flex items-center justify-between xs:justify-start gap-3 bg-white border px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] transition-all shrink-0",
+       isSortOpen ? "border-primary ring-2 ring-primary/5 shadow-md" : "border-border hover:border-primary"
+     )}
+   >
+     <span className="truncate">
+       {sort === 'latest' ? 'New Arrivals' : sort === 'price_low' ? 'Price Low' : sort === 'price_high' ? 'Price High' : sort === 'random' ? 'Random' : sort === 'recommended' ? 'Recommended' : 'Featured'}
+     </span>
+     <span className={cn("material-symbols-outlined text-[16px] sm:text-[18px] text-primary transition-transform duration-300", isSortOpen && "rotate-180")}>expand_more</span>
+   </button>
+   
+   {isSortOpen && (
+     <>
+       {/* Backdrop to close on click outside */}
+       <div className="fixed inset-0 z-50" onClick={() => setSortOpen(false)} />
+       
+       <div className="absolute right-0 top-full mt-2 w-full xs:w-48 bg-white border border-border rounded-2xl shadow-xl z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+         {[
+           { l: 'New Arrivals', v: 'latest' },
+           { l: 'Recommended', v: 'recommended' },
+           { l: 'Random Discovery', v: 'random' },
+           { l: 'Price: Low-High', v: 'price_low' },
+           { l: 'Price: High-Low', v: 'price_high' },
+         ].map((s) => (
+           <Link
+             key={s.v}
+             href={`${pathname}?${createQueryString('sort', s.v)}`}
+             onClick={() => setSortOpen(false)}
+             className={cn(
+               "block w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-colors",
+               sort === s.v ? "text-primary bg-primary/5" : "text-text-secondary"
+             )}
+           >
+             {s.l}
+           </Link>
+         ))}
+       </div>
+     </>
+   )}
  </div>
  </div>
  </div>

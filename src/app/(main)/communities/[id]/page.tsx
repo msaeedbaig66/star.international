@@ -201,9 +201,9 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/50 to-transparent z-20"></div>
  </div>
 
- <div className="max-w-7xl mx-auto px-0 md:px-6 relative">
- {/* Profile Info Section */}
- <section className="bg-white px-4 md:px-8 pb-6 relative z-30 pt-0 border-b border-border shadow-sm mx-0 md:mx-0">
+  <div className="max-w-7xl mx-auto px-0 relative">
+    {/* Profile Info Section */}
+    <section className="bg-white px-5 md:px-8 pb-8 relative z-30 pt-0 border-b border-slate-100 shadow-sm mx-0">
  <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-16 md:-mt-20">
  {/* Avatar */}
  <div className="relative isolate flex-shrink-0 z-10 w-fit mx-auto md:mx-0">
@@ -286,8 +286,8 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
  </section>
  </div>
 
- {/* Main Content Area */}
- <div className="max-w-4xl mx-auto px-6 py-12 space-y-10">
+  {/* Main Content Area */}
+  <div className="max-w-4xl mx-auto px-0 md:px-6 py-10 md:py-16 space-y-8 md:space-y-12">
  <CommunityPostComposer 
  communityId={community.id} 
  canPost={!!user && (isMember || isOwner || isAdmin)} 

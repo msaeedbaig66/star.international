@@ -259,50 +259,50 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
  sort={sort}
  hideSourceToggles={currentView === 'communities'}
  filters={
- <aside className="w-full xl:sticky xl:top-24 rounded-2xl xl:rounded-[2rem] border border-border bg-white shadow-sm overflow-hidden mb-8 xl:mb-0">
- <div className="px-6 py-5 bg-gradient-to-r from-primary/10 via-primary/5 to-white border-b border-border">
- <div className="flex items-center justify-between">
- <h3 className="text-lg font-black text-text-primary tracking-tight">Discovery Matrix</h3>
- <Link href="/marketplace" className="text-[10px] font-black uppercase tracking-[0.16em] text-primary hover:underline">
- Reset
- </Link>
- </div>
- <p className="text-xs text-text-secondary mt-2 font-medium italic">Fine-tune your browsing filters.</p>
- </div>
+      <aside className="w-full xl:sticky xl:top-24 rounded-3xl border border-slate-200/60 bg-white shadow-xl shadow-slate-200/20 overflow-visible mb-8 xl:mb-0">
+        <div className="px-8 py-7 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Filters</h3>
+            <Link href="/marketplace" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-colors">
+              Reset All
+            </Link>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1 font-bold uppercase tracking-widest">Discovery Matrix</p>
+        </div>
 
- <div className="p-6 space-y-7">
+ <div className="p-8 space-y-9">
  {currentView === 'items' && (
- <section className="space-y-3">
- <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Listing Type</p>
- <div className="grid grid-cols-2 gap-2">
- {LISTING_TYPE_OPTIONS.map(opt => (
- <Link
- key={opt.value}
- href={makeHref({ listing_type: opt.value })}
- className={`px-4 py-2 rounded-xl text-center text-[10px] font-black uppercase tracking-widest transition-all border ${currentListingType === opt.value ? 'bg-primary text-white border-primary' : 'bg-surface text-text-secondary border-transparent hover:border-primary/20'}`}
- >
- {opt.label}
- </Link>
- ))}
- </div>
- </section>
+          <section className="space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Listing Context</p>
+            <div className="grid grid-cols-2 gap-2">
+              {LISTING_TYPE_OPTIONS.map(opt => (
+                <Link
+                  key={opt.value}
+                  href={makeHref({ listing_type: opt.value })}
+                  className={`px-4 py-3 rounded-xl text-center text-[10px] font-black uppercase tracking-widest transition-all border ${currentListingType === opt.value ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200 hover:bg-white'}`}
+                >
+                  {opt.label}
+                </Link>
+              ))}
+            </div>
+          </section>
  )}
 
- <section className="space-y-4">
- <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Field / Category</p>
- <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
- {categories.map((cat) => (
- <Link 
- href={makeHref({ category: cat.name })} 
- key={cat.name} 
- className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition-all border ${currentCategory === cat.name ? 'bg-primary/5 text-primary border-primary/10' : 'text-text-secondary border-transparent hover:bg-surface'}`}
- >
- <span className="truncate pr-2">{cat.name}</span>
- <span className="text-[10px] tabular-nums opacity-60">{cat.count}</span>
- </Link>
- ))}
- </div>
- </section>
+          <section className="space-y-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Category Selection</p>
+            <div className="space-y-1 pr-3">
+              {categories.map((cat) => (
+                <Link 
+                  href={makeHref({ category: cat.name })} 
+                  key={cat.name} 
+                  className={`flex items-center justify-between rounded-xl px-4 py-3.5 text-[12px] font-black transition-all group ${currentCategory === cat.name ? 'bg-primary/5 text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span className="truncate pr-2 uppercase tracking-wider">{cat.name}</span>
+                  <span className={`text-[10px] tabular-nums font-black px-2 py-1 rounded-md ${currentCategory === cat.name ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-400 group-hover:bg-white transition-colors'}`}>{cat.count}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
  </div>
  </aside>
  }

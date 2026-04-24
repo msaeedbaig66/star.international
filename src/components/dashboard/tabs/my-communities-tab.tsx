@@ -559,10 +559,10 @@ export function MyCommunitiesTab({ profile }: MyCommunitiesTabProps) {
  return (
  <div className="space-y-8">
  {/* Header */}
- <div className="flex justify-between items-end">
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-4">
  <div>
- <h1 className="text-3xl font-bold text-text-primary tracking-tight">My Nexus Hubs</h1>
- <p className="text-text-secondary text-sm mt-1">Manage and explore student-led Nexus Hubs</p>
+ <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">My Nexus Hubs</h1>
+ <p className="text-slate-500 text-sm mt-1 font-medium">Manage and explore student-led Nexus Hubs</p>
  </div>
  <Button
  onClick={() => {
@@ -573,10 +573,10 @@ export function MyCommunitiesTab({ profile }: MyCommunitiesTabProps) {
  }
  setShowModal(true)
  }}
- className="shadow-lg shadow-primary/20"
+ className="shadow-xl shadow-primary/20 w-full sm:w-auto h-12 rounded-2xl flex items-center justify-center gap-2 px-6"
  >
- <span className="material-symbols-outlined text-[18px]">add</span>
- Create Nexus Hub
+            <span className="material-symbols-outlined text-[22px]">add_circle</span>
+            <span className="font-black uppercase tracking-widest text-[11px]">Create Nexus Hub</span>
  </Button>
  </div>
 

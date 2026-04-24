@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 const updateOrderSchema = z.object({
- status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+ status: z.enum(['pending', 'approved', 'processing', 'packed', 'shipped', 'delivered', 'cancelled']),
  trackingNumber: z.string().max(100).optional().nullable()
 })
 
