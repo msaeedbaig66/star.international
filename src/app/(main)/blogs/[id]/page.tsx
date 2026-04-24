@@ -15,6 +15,41 @@ import { ViewTracker } from '@/components/shared/view-tracker';
 import { InteractionCounter } from '@/components/shared/interaction-counter';
 import { ROUTES } from '@/lib/routes';
 import { UserLink, CategoryBreadcrumb, TagLink } from '@/components/shared/navigation-links';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookies().getAll() } } }
+  );
+
+  const routeKey = params.id || '';
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(routeKey);
+  
+  let blog: any = null;
+  if (isUuid) {
+    const { data } = await supabase.from('blogs').select('title, excerpt, cover_image').eq('id', routeKey).maybeSingle();
+    blog = data;
+  }
+  if (!blog) {
+    const { data } = await supabase.from('blogs').select('title, excerpt, cover_image').eq('slug', routeKey).maybeSingle();
+    blog = data;
+  }
+
+  if (!blog) return { title: 'Blog Not Found' };
+
+  return {
+    title: `${blog.title} | Allpanga`,
+    description: blog.excerpt || 'Read the latest blog post on Allpanga.',
+    openGraph: {
+      title: blog.title,
+      description: blog.excerpt,
+      images: blog.cover_image ? [{ url: blog.cover_image }] : [],
+    }
+  };
+}
 
 function stripHtml(input: string) {
  return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -73,7 +108,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  if (isUuid) {
  const byId = await supabase
  .from('blogs')
- .select('*, author:profiles!author_id(id,username,full_name,avatar_url,university,bio,follower_count,following_count)')
+ .select('*, author:profiles!blogs_author_id_fkey(id,username,full_name,avatar_url,university,bio,follower_count,following_count)')
  .eq('id', routeKey)
  .eq('moderation', 'approved')
  .maybeSingle();
@@ -84,7 +119,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  if (!blog) {
  const bySlug = await supabase
  .from('blogs')
- .select('*, author:profiles!author_id(id,username,full_name,avatar_url,university,bio,follower_count,following_count)')
+ .select('*, author:profiles!blogs_author_id_fkey(id,username,full_name,avatar_url,university,bio,follower_count,following_count)')
  .eq('slug', routeKey)
  .eq('moderation', 'approved')
  .maybeSingle();
@@ -110,7 +145,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  ] = await Promise.all([
  supabase.from('blogs').select('id, title, cover_image').eq('field', blog.field).neq('id', blog.id).eq('moderation', 'approved').limit(3),
  supabase.from('blogs').select('id, title, field').eq('author_id', blog.author_id).neq('id', blog.id).eq('moderation', 'approved').limit(2),
- supabase.from('comments').select('*, author:profiles!author_id(id,username,full_name,avatar_url,university,bio,follower_count,following_count)').eq('blog_id', blog.id).eq('moderation', 'approved').order('created_at', { ascending: false }),
+  supabase.from('comments').select('*, author:profiles!comments_author_id_fkey(id,username,full_name,avatar_url,university,bio,follower_count,following_count)').eq('blog_id', blog.id).eq('moderation', 'approved').order('created_at', { ascending: false }),
  supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', blog.author_id),
  supabase.from('blogs').select('id', { count: 'exact', head: true }).eq('author_id', blog.author_id).eq('moderation', 'approved'),
  user ? supabase.from('likes').select('id').eq('user_id', user.id).eq('blog_id', blog.id).maybeSingle() : Promise.resolve({ data: null }),
