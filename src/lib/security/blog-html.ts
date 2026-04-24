@@ -53,44 +53,8 @@ const YOUTUBE_EMBED_PATTERN = /^https:\/\/(?:www\.)?(?:youtube\.com\/embed\/|you
 let hooksConfigured = false
 
 function configureSanitizerHooks() {
- if (hooksConfigured) return
- hooksConfigured = true
-
- DOMPurify.addHook('afterSanitizeAttributes', (node: any) => {
- const nodeName = String(node?.nodeName || '').toLowerCase()
-
- if (nodeName === 'a') {
- const href = node.getAttribute?.('href')
- if (!isSafeUrl(href)) {
- node.removeAttribute?.('href')
- } else if (node.getAttribute?.('target') === '_blank') {
- node.setAttribute?.('rel', 'noopener noreferrer nofollow')
- }
- }
-
- if (nodeName === 'img') {
- const src = node.getAttribute?.('src')
- if (!isSafeUrl(src, true)) {
- node.remove()
- return
- }
- node.setAttribute?.('loading', 'lazy')
- node.setAttribute?.('decoding', 'async')
- node.setAttribute?.('referrerpolicy', 'no-referrer')
- }
-
- if (nodeName === 'iframe') {
- const src = node.getAttribute?.('src')
- if (!YOUTUBE_EMBED_PATTERN.test(String(src || ''))) {
- node.remove()
- return
- }
- node.setAttribute?.('loading', 'lazy')
- node.setAttribute?.('referrerpolicy', 'strict-origin-when-cross-origin')
- node.setAttribute?.('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share')
- node.setAttribute?.('allowfullscreen', 'true')
- }
- })
+  // Purge hooks as DOMPurify is removed for ESM compatibility
+  return;
 }
 
 export function sanitizeBlogHtml(rawHtml: string) {
