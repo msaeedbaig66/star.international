@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
-import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
 import Image from 'next/image'

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
 import { ROUTES } from '@/lib/routes'
