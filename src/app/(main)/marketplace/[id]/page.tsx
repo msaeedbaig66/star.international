@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { formatRelativeTime, formatPrice } from '@/lib/utils';
-import { format } from 'date-fns';
 import Image from 'next/image';
 import { ListingActions } from '@/components/marketplace/listing-actions';
 import { ListingMetaActions } from '@/components/marketplace/listing-meta-actions';
@@ -233,7 +232,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  </div>
  <div className="flex justify-between">
  <span className="text-on-surface-variant">Listed On</span>
- <span className="font-semibold text-on-surface">{format(new Date(listing.created_at), 'MMM dd, yyyy')}</span>
+  <span className="font-semibold text-on-surface">{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(listing.created_at))}</span>
  </div>
  <div className="flex justify-between">
  <span className="text-on-surface-variant">Availability</span>

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ListingCard } from '@/components/shared/listing-card';
 import { BlogCard } from '@/components/shared/blog-card';
 import { FollowButton } from '@/components/shared/follow-button';
-import { format } from 'date-fns';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/lib/routes';
@@ -567,7 +566,7 @@ export default async function ProfilePage({
                         </div>
                         <div className="min-w-0">
                           <UserLink user={review.reviewer} size="sm" className="font-black uppercase tracking-tight text-text-primary hover:text-primary transition-colors truncate block" />
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted mt-0.5">{format(new Date(review.created_at), 'MMM d, yyyy')}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted mt-0.5">{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(review.created_at))}</p>
                         </div>
                       </div>
                       
@@ -630,7 +629,7 @@ export default async function ProfilePage({
                         <UserLink user={entry.profile} size="md" showAvatar={false} className="text-on-surface hover:text-primary transition-colors font-black uppercase tracking-tight truncate block leading-tight" />
                         <p className="text-[10px] font-bold text-text-muted mt-1 truncate uppercase tracking-widest">{entry.profile.university || 'Student'}</p>
                         <p className="text-[9px] font-medium text-text-muted mt-1 opacity-70">
-                          {activeTab === 'followers' ? 'Followed' : 'Following since'} {format(new Date(entry.created_at), 'MMM d, yyyy')}
+                          {activeTab === 'followers' ? 'Followed' : 'Following since'} {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(entry.created_at))}
                         </p>
                       </div>
                     </div>

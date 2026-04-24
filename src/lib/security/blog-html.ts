@@ -1,5 +1,4 @@
-import * as DOMPurifyModule from 'isomorphic-dompurify';
-const DOMPurify = (DOMPurifyModule as any).default || DOMPurifyModule;
+import DOMPurify from 'isomorphic-dompurify';
 import { isSafeUrl } from './url-security'
 
 const BLOG_ALLOWED_TAGS = [
@@ -95,6 +94,10 @@ function configureSanitizerHooks() {
 }
 
 export function sanitizeBlogHtml(rawHtml: string) {
+ if (!DOMPurify || typeof DOMPurify.sanitize !== 'function') {
+  console.error('[Sanitizer] DOMPurify is not available');
+  return String(rawHtml || '');
+ }
  configureSanitizerHooks()
  return DOMPurify.sanitize(String(rawHtml || ''), {
  ALLOWED_TAGS: [...BLOG_ALLOWED_TAGS],

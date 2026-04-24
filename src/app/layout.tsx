@@ -37,7 +37,8 @@ export default async function RootLayout({ children }: { children:React.ReactNod
  return (
  <html lang='en' className={inter.variable}>
  <head>
- <script
+      <script
+        nonce={nonce}
  dangerouslySetInnerHTML={{
  __html: `
  (function() {

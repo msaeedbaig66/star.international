@@ -17,7 +17,7 @@ const nextConfig = {
   },
 
   // ── ESM Hardening: ensure ESM packages are transpiled for Node.js ──
-  transpilePackages: ['isomorphic-dompurify', 'date-fns'],
+  transpilePackages: ['isomorphic-dompurify'],
 
   async headers() {
     const securityHeaders = [
