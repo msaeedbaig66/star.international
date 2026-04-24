@@ -97,7 +97,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
     supabase = await createClient();
   } catch (err) {
     console.error('[BlogDetail] Client Error:', err);
-    return <ProductionErrorState message="Server connection failed" />;
+    return <ProductionErrorState message="Server connection failed" error={err} />;
   }
 
   // 2. DEFENSIVE PARAMS HANDLING
@@ -422,11 +422,11 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
     );
   } catch (err) {
     console.error('[BlogDetail] Critical Failure:', err);
-    return <ProductionErrorState message="An unexpected error occurred while loading this post." />;
+    return <ProductionErrorState message="An unexpected error occurred while loading this post." error={err} />;
   }
 }
 
-function ProductionErrorState({ message }: { message: string }) {
+function ProductionErrorState({ message, error }: { message: string, error?: any }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
       <div className="max-w-md w-full bg-white rounded-[2rem] p-10 shadow-xl text-center border border-slate-100">
@@ -435,6 +435,13 @@ function ProductionErrorState({ message }: { message: string }) {
         </div>
         <h1 className="text-2xl font-black text-slate-900 mb-4">Post Unavailable</h1>
         <p className="text-slate-500 leading-relaxed mb-10">{message}</p>
+        
+        {error && (
+          <pre className="mb-8 p-4 bg-slate-900 text-rose-300 text-xs rounded-lg overflow-auto max-h-40 text-left border border-rose-500/30">
+            {error.message || String(error)}
+          </pre>
+        )}
+
         <Link 
           href={ROUTES.blog.list()}
           className="inline-flex items-center justify-center px-8 py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
