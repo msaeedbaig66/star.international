@@ -1,4 +1,5 @@
-import DOMPurify from 'isomorphic-dompurify'
+import * as DOMPurifyModule from 'isomorphic-dompurify';
+const DOMPurify = (DOMPurifyModule as any).default || DOMPurifyModule;
 import { isSafeUrl } from './url-security'
 
 const BLOG_ALLOWED_TAGS = [
