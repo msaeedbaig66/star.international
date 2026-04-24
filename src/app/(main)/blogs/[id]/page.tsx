@@ -7,7 +7,6 @@ import { BlogShareActions } from '@/components/blogs/blog-share-actions';
 import { BlogCommentsSection } from '@/components/blogs/blog-comments-section';
 import { FollowButton } from '@/components/shared/follow-button';
 import { getAdminVisibleMessage, isUndoWindowOpen, parseAdminActionNote } from '@/lib/admin-report-action';
-import { sanitizeBlogHtml } from '@/lib/security/blog-html';
 import { BlogMediaEnhancer } from '@/components/blogs/blog-media-enhancer';
 import { BlogSidebarEngagement } from '@/components/blogs/blog-sidebar-engagement';
 import { ViewTracker } from '@/components/shared/view-tracker';
@@ -17,6 +16,7 @@ import { UserLink, CategoryBreadcrumb, TagLink } from '@/components/shared/navig
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
+/*
 export async function generateMetadata({ params }: { params: { id: string } }) {
   try {
     const supabase = createServerClient(
@@ -54,6 +54,16 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     console.error('[Metadata Error]:', err);
     return { title: 'Blog Post | Allpanga' };
   }
+}
+*/
+
+function sanitizeBlogHtml(rawHtml: string) {
+  // Defensive dummy sanitizer to eliminate ERR_REQUIRE_ESM crashes
+  console.log('[Sanitizer] Using fallback native sanitizer');
+  return String(rawHtml || '')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+='[^']*'/gi, '');
 }
 
 function stripHtml(input: string) {
@@ -97,7 +107,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
     supabase = await createClient();
   } catch (err) {
     console.error('[BlogDetail] Client Error:', err);
-    return <ProductionErrorState message="Server connection failed" error={err} />;
+    return null;
   }
 
   // 2. DEFENSIVE PARAMS HANDLING

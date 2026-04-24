@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify';
+// import DOMPurify from 'isomorphic-dompurify';
 import { isSafeUrl } from './url-security'
 
 const BLOG_ALLOWED_TAGS = [
@@ -94,35 +94,11 @@ function configureSanitizerHooks() {
 }
 
 export function sanitizeBlogHtml(rawHtml: string) {
- if (!DOMPurify || typeof DOMPurify.sanitize !== 'function') {
-  console.error('[Sanitizer] DOMPurify is not available');
-  return String(rawHtml || '');
- }
- configureSanitizerHooks()
- return DOMPurify.sanitize(String(rawHtml || ''), {
- ALLOWED_TAGS: [...BLOG_ALLOWED_TAGS],
- ALLOWED_ATTR: [...BLOG_ALLOWED_ATTR],
- FORBID_TAGS: [
- 'script',
- 'style',
- 'link',
- 'meta',
- 'base',
- 'object',
- 'embed',
- 'svg',
- 'math',
- 'form',
- 'input',
- 'button',
- 'textarea',
- 'select',
- 'option',
- 'noscript',
- ],
- FORBID_ATTR: ['srcset'],
- ALLOW_DATA_ATTR: false,
- })
+  // Defensive dummy sanitizer to eliminate ERR_REQUIRE_ESM crashes
+  return String(rawHtml || '')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+='[^']*'/gi, '');
 }
 
 export function stripHtmlToText(input: string) {

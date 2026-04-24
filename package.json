@@ -33,7 +33,6 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
     "emoji-picker-react": "^4.18.0",
-    "isomorphic-dompurify": "^3.6.0",
     "next": "14.2.35",
     "next-cloudinary": "^6.17.5",
     "react": "^18",
