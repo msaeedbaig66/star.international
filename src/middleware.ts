@@ -25,13 +25,11 @@ function buildContentSecurityPolicy(nonce?: string) {
  }
 
  const scriptSrc = [`'self'`, 'https://cdn.jsdelivr.net']
- if (nonce && IS_PRODUCTION) {
- // Only use strict-dynamic in production to ensure dev HMR/fallback scripts aren't blocked
- scriptSrc.push(`'nonce-${nonce}'`, `'strict-dynamic'`)
- } else {
- // In dev, we need more flexibility for Next.js internal scripts
- if (nonce) scriptSrc.push(`'nonce-${nonce}'`)
- scriptSrc.push(`'unsafe-inline'`, `'unsafe-eval'`)
+ if (nonce) {
+  scriptSrc.push(`'nonce-${nonce}'`)
+ }
+ if (!IS_PRODUCTION) {
+  scriptSrc.push(`'unsafe-eval'`)
  }
 
  const connectSrc = [`'self'`]
