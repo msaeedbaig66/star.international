@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { format, formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { BlogLikeButton } from '@/components/blogs/blog-like-button';
 import { BlogShareActions } from '@/components/blogs/blog-share-actions';
@@ -223,7 +222,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
               <UserLink user={author} className="text-white hover:text-white/80" size="md" viewerRole={viewerRole} />
               <div className="flex items-center gap-2 text-sm">
                 <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-                <span>{isDateValid ? format(blogDate, 'MMM d, yyyy') : 'Recently Posted'}</span>
+                <span>{isDateValid ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(blogDate) : 'Recently Posted'}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="material-symbols-outlined text-[18px]">schedule</span>
