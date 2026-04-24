@@ -8,6 +8,8 @@ import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
 import { ROUTES } from '@/lib/routes'
 import { UserLink } from '@/components/shared/navigation-links'
+import { cn } from '@/lib/utils'
+import { SafeTime } from '@/components/shared/safe-time'
 
 interface BlogCommentsSectionProps {
  blogId: string
@@ -24,14 +26,13 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  const [replyingToId, setReplyingToId] = useState<string | null>(null)
  const [replyContentByParent, setReplyContentByParent] = useState<Record<string, string>>({})
  const [submittingReplyToId, setSubmittingReplyToId] = useState<string | null>(null)
- const [isAnonymous, setIsAnonymous] = useState(false)
- const [isAnonymousReply, setIsAnonymousReply] = useState<Record<string, boolean>>({})
  const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(
  () => new Set(comments.filter(c => c.isLiked).map(c => c.id))
  )
  const [likeCounts, setLikeCounts] = useState<Record<string, number>>(
  () => comments.reduce((acc, comment) => ({ ...acc, [comment.id]: comment.like_count || 0 }), {})
  )
+ const [poppedId, setPoppedId] = useState<string | null>(null)
  const debounceTimersRef = useRef<Record<string, NodeJS.Timeout>>({})
  const router = useRouter()
 
@@ -58,7 +59,7 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  body: JSON.stringify({
  content: trimmed,
  blog_id: blogId,
- is_anonymous: isAnonymous
+ is_anonymous: false
  }),
  })
 
@@ -107,7 +108,7 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  content: replyContent,
  blog_id: blogId,
  parent_id: parentId,
- is_anonymous: !!isAnonymousReply[parentId]
+ is_anonymous: false
  }),
  })
 
@@ -146,18 +147,7 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  disabled={!canComment || submitting}
  />
  <div className="mt-3 flex items-center justify-between">
- {currentUserRole === 'admin' && (
- <button
- type="button"
- onClick={() => setIsAnonymous(!isAnonymous)}
- className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
- isAnonymous ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-text-muted border-border'
- }`}
- >
- <span className="material-symbols-outlined text-[14px]">{isAnonymous ? 'visibility_off' : 'visibility'}</span>
- {isAnonymous ? 'Anonymous' : 'Public'}
- </button>
- )}
+
  <button
  onClick={handlePostComment}
  disabled={submitting || !content.trim()}
@@ -179,7 +169,10 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  {comment.author_id === blogAuthorId && (
  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[9px] font-bold uppercase">Author</span>
  )}
- <span className="text-xs text-on-surface-variant">• {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+  <span>•</span>
+  <SafeTime date={comment.created_at} />
+  </div>
  </div>
  <p className="text-sm text-on-surface-variant leading-relaxed">{comment.content}</p>
  <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-primary">
@@ -215,6 +208,11 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  })
  setLikeCounts(prev => ({ ...prev, [comment.id]: nextCount }))
 
+ if (nextLiked) {
+ setPoppedId(comment.id)
+ setTimeout(() => setPoppedId(null), 450)
+ }
+
  // 2. Debounced API Sync
  if (debounceTimersRef.current[comment.id]) clearTimeout(debounceTimersRef.current[comment.id])
  
@@ -228,10 +226,15 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  }
  }, 1000)
  }}
- className="flex items-center gap-1 group"
- >
- <span className="material-symbols-outlined text-[14px] transition-transform active:scale-125" style={{ fontVariationSettings: likedCommentIds.has(comment.id) ? "'FILL' 1" : "'FILL' 0" }}>thumb_up</span> {(likeCounts[comment.id] ?? comment.like_count) || 0}
- </button>
+  className={cn(
+  "flex items-center gap-1.5 transition-all active:scale-90",
+  likedCommentIds.has(comment.id) ? "text-rose-500" : "text-slate-400 hover:text-rose-500",
+  poppedId === comment.id && "animate-like-pop"
+  )}
+  >
+  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: likedCommentIds.has(comment.id) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span> 
+  <span className="text-[11px] font-black">{likeCounts[comment.id] ?? comment.like_count ?? 0}</span>
+  </button>
  {(currentUserId === comment.author_id || currentUserId === blogAuthorId) && (
  <button
  onClick={async () => {
@@ -265,18 +268,7 @@ export function BlogCommentsSection({ blogId, blogAuthorId, comments, canComment
  />
  <div className="mt-2 flex items-center justify-between gap-2">
  <div className="flex items-center gap-2">
- {currentUserRole === 'admin' && (
- <button
- type="button"
- onClick={() => setIsAnonymousReply(prev => ({ ...prev, [comment.id]: !prev[comment.id] }))}
- className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
- isAnonymousReply[comment.id] ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-text-muted border-border'
- }`}
- >
- <span className="material-symbols-outlined text-[14px]">{isAnonymousReply[comment.id] ? 'visibility_off' : 'visibility'}</span>
- {isAnonymousReply[comment.id] ? 'Anonymous' : 'Public'}
- </button>
- )}
+
  <button
  onClick={() => setReplyingToId(null)}
  className="px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest text-on-surface-variant border border-outline-variant/30"

@@ -39,8 +39,15 @@ export function GlobalNotificationListener() {
  if (!newNotification) return
 
  // Show a professional toast notification
- toast.message(
+ const toastId = toast.message(
  <div className="flex flex-col gap-1 w-full relative">
+  <button 
+  onClick={() => toast.dismiss(toastId)}
+  className="absolute -top-1 -right-1 p-1 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600 active:scale-95"
+  title="Close"
+  >
+  <span className="material-symbols-outlined text-[16px]">close</span>
+  </button>
  <div className="flex items-center gap-2">
  <span className="material-symbols-outlined text-primary text-[18px]">
  {newNotification.type === 'message' ? 'forum' : 'notifications_active'}
@@ -51,7 +58,10 @@ export function GlobalNotificationListener() {
  {newNotification.message || 'You have a new notification'}
  </p>
  <button 
- onClick={() => router.push('/dashboard?tab=notifications')}
+ onClick={() => {
+  toast.dismiss(toastId)
+  router.push('/dashboard?tab=notifications')
+ }}
  className="mt-2 w-fit px-3 py-1.5 rounded-lg bg-surface hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest transition-colors"
  >
  View

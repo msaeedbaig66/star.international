@@ -43,6 +43,20 @@ export async function GET(request: Request) {
 
  if (error) throw error
 
+ // Enhance posts with isLiked status if user is logged in
+ if (user && data) {
+   const { data: userLikes } = await supabase
+     .from('likes')
+     .select('post_id')
+     .eq('user_id', user.id)
+     .in('post_id', data.map(p => p.id))
+
+   const likedSet = new Set(userLikes?.map(l => l.post_id) || [])
+   data.forEach(p => {
+     p.isLiked = likedSet.has(p.id)
+   })
+ }
+
  return NextResponse.json({ data })
  } catch (error: any) {
  console.error('Feed fetch error:', error)

@@ -4,6 +4,7 @@ import { communitySchema } from '@/lib/validations/community'
 import { generateSlug } from '@/lib/utils'
 import { isAllowedCommunityImageUrl } from '@/lib/security/media-urls'
 import { toSafeLikeTerm } from '@/lib/search-ranking'
+import { cacheService } from '@/lib/cache-service'
 
 const PUBLIC_OWNER_SELECT = 'id, username, full_name, avatar_url'
 const COMMUNITY_FEED_SELECT = `
@@ -154,13 +155,20 @@ export async function POST(request: Request) {
  if (error) throw error
 
  // 5. Add owner to members table too
- if (data) {
- await supabase.from('community_members').insert({
- community_id: data.id,
- user_id: user.id,
- role: 'admin'
- })
- }
+  if (data) {
+    await supabase.from('community_members').insert({
+      community_id: data.id,
+      user_id: user.id,
+      role: 'admin'
+    })
+
+    // Invalidate featured communities cache
+    try {
+      await cacheService.deleteByPattern('home:communities:*')
+    } catch (cacheError) {
+      console.error('Cache Invalidation Error:', cacheError)
+    }
+  }
 
  return NextResponse.json({ data, error: null }, { status: 201 })
  } catch (error: any) {

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -26,7 +27,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
  if (error) throw error;
  
- return NextResponse.json({ success: true, error: null })
+ // Fetch fresh count bypassing RLS
+ const admin = createAdminClient()
+ const { count } = await admin.from('wishlist').select('*', { count: 'exact', head: true }).eq('listing_id', listingId);
+ 
+ return NextResponse.json({ success: true, save_count: count || 0 })
  } catch (error: any) {
  console.error('API Error:', error)
  return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
@@ -54,7 +59,11 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
  if (error) throw error;
  
- return NextResponse.json({ success: true, error: null })
+ // Fetch fresh count bypassing RLS
+ const admin = createAdminClient()
+ const { count } = await admin.from('wishlist').select('*', { count: 'exact', head: true }).eq('listing_id', listingId);
+ 
+ return NextResponse.json({ success: true, save_count: count || 0 })
  } catch (error: any) {
  console.error('API Error:', error)
  return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })

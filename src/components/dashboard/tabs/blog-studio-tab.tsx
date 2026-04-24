@@ -398,7 +398,7 @@ export function BlogStudioTab({ profile, editId }: BlogStudioTabProps) {
  .join(' | ')
  throw new Error(`Validation Error: ${errors}`)
  }
- throw new Error(json.error || 'Failed to sync')
+ throw new Error(json.error || `Failed to sync (Status: ${res.status})`)
  }
 
  if (isDraftMode) {

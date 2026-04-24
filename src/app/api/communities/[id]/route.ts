@@ -9,6 +9,7 @@ import {
  type SoftDeleteActorRole,
 } from '@/lib/content-soft-delete'
 import { isAllowedCommunityImageUrl } from '@/lib/security/media-urls'
+import { cacheService } from '@/lib/cache-service'
 
 const PUBLIC_OWNER_SELECT = 'id, username, full_name, avatar_url'
 const COMMUNITY_SELECT = `*, owner:profiles!owner_id(${PUBLIC_OWNER_SELECT})`
@@ -186,6 +187,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
  const { data, error } = await updateQuery.select().single()
  if (error) throw error
 
+ // Invalidate featured communities cache
+ try {
+   await cacheService.deleteByPattern('home:communities:*')
+ } catch (cacheError) {
+   console.error('Cache Invalidation Error:', cacheError)
+ }
+
  return NextResponse.json({ data, error: null })
  } catch (error: any) {
  return NextResponse.json({ data: null, error: 'Failed to process community request' }, { status: 500 })
@@ -255,10 +263,17 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
  if (!canAdmin) {
  deleteQuery = deleteQuery.eq('owner_id', user.id)
  }
- const { data, error } = await deleteQuery
- .select('id, name, moderation, rejection_note, updated_at')
- .single()
- if (error) throw error
+  const { data, error } = await deleteQuery
+    .select('id, name, moderation, rejection_note, updated_at')
+    .single()
+  if (error) throw error
+
+  // Invalidate featured communities cache
+  try {
+    await cacheService.deleteByPattern('home:communities:*')
+  } catch (cacheError) {
+    console.error('Cache Invalidation Error:', cacheError)
+  }
 
  if (canAdmin && existing.owner_id !== user.id) {
  await admin!.from('notifications').insert({
@@ -324,10 +339,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
  if (!canAdmin) {
  restoreQuery = restoreQuery.eq('owner_id', user.id)
  }
- const { data, error } = await restoreQuery
- .select('id, name, moderation, rejection_note, updated_at')
- .single()
- if (error) throw error
+  const { data, error } = await restoreQuery
+    .select('id, name, moderation, rejection_note, updated_at')
+    .single()
+  if (error) throw error
+
+  // Invalidate featured communities cache
+  try {
+    await cacheService.deleteByPattern('home:communities:*')
+  } catch (cacheError) {
+    console.error('Cache Invalidation Error:', cacheError)
+  }
 
  if (canAdmin && existing.owner_id !== user.id) {
  await admin!.from('notifications').insert({

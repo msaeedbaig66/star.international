@@ -102,17 +102,25 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
  user 
  ? supabase
  .from('likes')
- .select('comment_id')
+ .select('post_id, comment_id')
  .eq('user_id', user.id)
  : Promise.resolve({ data: [] })
  ])
  : [{ data: [] }, { data: [] }];
 
  if (userCommentLikes && postComments) {
- const likedSet = new Set(userCommentLikes.map(cl => cl.comment_id));
+ const likedCommentsSet = new Set(userCommentLikes.map(cl => cl.comment_id).filter(Boolean));
+ const likedPostsSet = new Set(userCommentLikes.map(cl => cl.post_id).filter(Boolean));
+
  postComments.forEach((c: any) => {
- c.isLiked = likedSet.has(c.id);
+ c.isLiked = likedCommentsSet.has(c.id);
  });
+
+ if (posts) {
+ posts.forEach((p: any) => {
+ p.isLiked = likedPostsSet.has(p.id);
+ });
+ }
  }
 
  let isMember = false;
@@ -258,7 +266,7 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
  {description}
  </p>
  
- <div className="flex items-center justify-center gap-8 shrink-0">
+ <div className="flex items-center justify-center gap-5 md:gap-8 shrink-0">
  <div className="flex flex-col items-center">
  <span className="text-lg text-text-primary font-black leading-none mb-1">{community.member_count || 0}</span>
  <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Members</span>

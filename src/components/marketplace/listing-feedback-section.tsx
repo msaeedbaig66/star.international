@@ -30,7 +30,7 @@ export function ListingFeedbackSection({
   const router = useRouter()
   const [localComments, setLocalComments] = useState<any[]>(comments)
   const [comment, setComment] = useState('')
-  const [isAnonymous, setIsAnonymous] = useState(false)
+
   const [submitting, setSubmitting] = useState(false)
 
   // Sync with prop updates
@@ -68,7 +68,7 @@ export function ListingFeedbackSection({
       id: `temp-${Date.now()}`,
       content,
       created_at: new Date().toISOString(),
-      is_anonymous: isAnonymous,
+      is_anonymous: false,
       author: currentUser || { 
         full_name: 'You', 
         avatar_url: null, 
@@ -88,7 +88,7 @@ export function ListingFeedbackSection({
         body: JSON.stringify({
           content,
           listing_id: listingId,
-          is_anonymous: isAnonymous
+          is_anonymous: false
         }),
       })
 
@@ -157,18 +157,7 @@ export function ListingFeedbackSection({
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
  <p className="text-xs text-on-surface-variant">{comment.length}/500</p>
- {viewerRole === 'admin' && (
- <button
- type="button"
- onClick={() => setIsAnonymous(!isAnonymous)}
- className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
- isAnonymous ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-text-muted border-border'
- }`}
- >
- <span className="material-symbols-outlined text-[14px]">{isAnonymous ? 'visibility_off' : 'visibility'}</span>
- {isAnonymous ? 'Anonymous' : 'Public'}
- </button>
- )}
+
  </div>
  <button
  onClick={handleSubmitComment}

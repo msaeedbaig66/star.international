@@ -1,25 +1,50 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { Blog, Profile } from '@/types/database'
 import { isFeaturedActive } from '@/lib/featured-content'
 import { cn } from '@/lib/utils'
 import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import { ROUTES } from '@/lib/routes'
 import { UserLink } from './navigation-links'
+import { dispatchSync, useSyncListener } from '@/lib/action-sync'
 import { SafeDate } from './safe-time'
 
 interface BlogCardProps {
  blog: Blog & { author?: Pick<Profile, 'username'> & { avatar_url?: string | null; full_name?: string | null } }
+ isLiked?: boolean
 }
 
-export function BlogCard({ blog }: BlogCardProps) {
- const [featuredActive, setFeaturedActive] = useState(false)
- 
- useEffect(() => {
- setFeaturedActive(isFeaturedActive(blog))
- }, [blog])
+export function BlogCard({ blog, isLiked: initialIsLiked = false }: BlogCardProps) {
+  const [isLiked, setIsLiked] = useState(initialIsLiked)
+  const [likeCount, setLikeCount] = useState(blog.like_count || 0)
+  const [popped, setPopped] = useState(false)
+  const [featuredActive, setFeaturedActive] = useState(false)
+  
+  const serverStateRef = useRef({ count: blog.like_count || 0 })
+  const lastModifiedRef = useRef<number>(0)
+
+  useEffect(() => {
+  setFeaturedActive(isFeaturedActive(blog))
+  }, [blog])
+
+  useEffect(() => {
+    // Only sync from props if it's been a while since our last local interaction
+    const isRecentlyModified = Date.now() - lastModifiedRef.current < 3000
+    if (!isRecentlyModified && blog.like_count !== serverStateRef.current.count) {
+      setLikeCount(blog.like_count || 0)
+      serverStateRef.current = { count: blog.like_count || 0 }
+    }
+  }, [blog.like_count])
+
+  // LISTEN for external sync events
+  useSyncListener('blog-like', blog.id, (nextState, nextCount) => {
+    setIsLiked(nextState);
+    if (typeof nextCount === 'number') setLikeCount(nextCount);
+  });
+
+
  
  return (
  <div
@@ -63,6 +88,7 @@ export function BlogCard({ blog }: BlogCardProps) {
  </span>
  )}
  </div>
+
  </div>
  
  <div className='p-3 sm:p-5 flex flex-col flex-1 pb-3 sm:pb-4 relative z-20 pointer-events-none'>
@@ -91,8 +117,8 @@ export function BlogCard({ blog }: BlogCardProps) {
  
  <div className='flex items-center gap-2 sm:gap-4 pt-3 sm:pt-4 mt-auto border-t border-slate-50'>
  <div className="flex items-center gap-1 sm:gap-1.5" title="Likes">
- <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-300" style={{ fontVariationSettings: "'FILL' 1" }}>thumb_up</span>
- <span className="text-[9px] sm:text-[10px] font-black text-slate-500 tabular-nums">{blog.like_count || 0}</span>
+ <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-rose-300" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+ <span className="text-[9px] sm:text-[10px] font-black text-slate-500 tabular-nums">{likeCount}</span>
  </div>
  <div className="flex items-center gap-1 sm:gap-1.5" title="Comments">
  <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-300">chat_bubble</span>

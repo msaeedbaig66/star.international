@@ -173,21 +173,56 @@ export async function GET(request: Request) {
  query = query.lt('created_at', cursor)
  }
 
- const { data, error } = await query
- .order('is_pinned', { ascending: false })
- .order('created_at', { ascending: false })
- .limit(limit)
+  const { data, error } = await query
+  .order('is_pinned', { ascending: false })
+  .order('created_at', { ascending: false })
+  .limit(limit)
 
- if (error) throw error
+  if (error) throw error
 
- const nextCursor = data.length === limit ? data[data.length - 1].created_at : null
+  // Get viewer identity and role
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  let viewerRole = 'guest'
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+    viewerRole = profile?.role || 'user'
+  }
 
- return NextResponse.json({ 
- data, 
- nextCursor,
- count: data.length,
- error: null 
- })
+  // Redact anonymous authors for privacy
+  const redactedData = data.map(comment => {
+    if (comment.is_anonymous) {
+      const isAuthor = user?.id === comment.author_id
+      const isAdmin = viewerRole === 'admin'
+
+      if (!isAuthor && !isAdmin) {
+        return {
+          ...comment,
+          author_id: 'anonymous',
+          author: {
+            id: 'anonymous',
+            username: 'Anonymous',
+            full_name: 'Anonymous Student',
+            avatar_url: null
+          }
+        }
+      }
+    }
+    return comment
+  })
+
+  const nextCursor = data.length === limit ? data[data.length - 1].created_at : null
+
+  return NextResponse.json({ 
+    data: redactedData, 
+    nextCursor,
+    count: redactedData.length,
+    error: null 
+  })
  } catch (error: any) {
  console.error('Comment GET API Error:', error)
  return NextResponse.json({ data: null, error: 'Failed to process comment' }, { status: 500 })

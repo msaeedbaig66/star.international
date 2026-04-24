@@ -102,7 +102,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  commentsQuery.order('created_at', { ascending: false }),
  supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', listing.seller_id),
  supabase.from('ratings').select('score').eq('subject_id', listing.seller_id),
- user ? supabase.from('wishlist').select('id').eq('user_id', user.id).eq('listing_id', listing.id).maybeSingle() : Promise.resolve({ data: null }),
+ user ? supabase.from('wishlist').select('user_id').eq('user_id', user.id).eq('listing_id', listing.id).maybeSingle() : Promise.resolve({ data: null }),
  user && user.id !== listing.seller_id ? supabase.from('follows').select('follower_id').eq('follower_id', user.id).eq('following_id', listing.seller_id).maybeSingle() : Promise.resolve({ data: null }),
  user && user.id !== listing.seller_id ? supabase.from('ratings').select('id').eq('reviewer_id', user.id).eq('listing_id', listing.id).maybeSingle() : Promise.resolve({ data: null })
  ]);
@@ -321,13 +321,13 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  ) : (
  <div className="flex items-start gap-4">
  <div className="relative shrink-0">
- <UserLink user={seller} size="lg" showName={false} className="hover:opacity-90 transition-opacity" viewerRole={viewerProfile?.role} />
+ <UserLink user={seller} size="lg" showName={false} className="hover:opacity-90 transition-opacity" viewerRole={currentUserProfile?.role} />
  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-border">
  <span className="material-symbols-outlined text-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
  </div>
  </div>
  <div className="min-w-0 flex-1 pt-1">
- <UserLink user={seller} showAvatar={false} size="lg" className="text-on-surface hover:text-primary transition-colors block text-xl font-extrabold leading-tight" viewerRole={viewerProfile?.role} />
+ <UserLink user={seller} showAvatar={false} size="lg" className="text-on-surface hover:text-primary transition-colors block text-xl font-extrabold leading-tight" viewerRole={currentUserProfile?.role} />
  <p className="text-primary text-[11px] font-black uppercase tracking-[0.18em] mt-1">Student Seller</p>
  <Link href={ROUTES.profile.view(seller?.username || 'user')} className="text-on-surface-variant text-sm hover:text-primary transition-colors inline-block mt-0.5">
  @{seller?.username || 'user'}

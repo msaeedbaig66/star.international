@@ -10,17 +10,23 @@ type CacheEntry<T> = {
  */
 const cache = new Map<string, CacheEntry<any>>()
 
+let _redisClient: any = null
+let _redisInitAttempted = false
+
 async function getRedisClient() {
  if (typeof window !== 'undefined') return null
+ if (_redisInitAttempted) return _redisClient
+
  const url = process.env.UPSTASH_REDIS_REST_URL
  const token = process.env.UPSTASH_REDIS_REST_TOKEN
  
+ _redisInitAttempted = true
  if (!url || !token) return null
  
  try {
- // Only import if we have credentials to save on bundle size/execution
  const { Redis } = await import('@upstash/redis')
- return new Redis({ url, token })
+ _redisClient = new Redis({ url, token })
+ return _redisClient
  } catch (e) {
  console.error('Redis Init Error:', e)
  return null
@@ -32,7 +38,7 @@ export const cacheService = {
  const redis = await getRedisClient()
  if (redis) {
  try {
- return await redis.get<T>(key)
+ return (await redis.get(key)) as T
  } catch (e) {
  console.error('Redis Get Error:', e)
  }

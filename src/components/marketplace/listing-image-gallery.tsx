@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
 interface ListingImageGalleryProps {
@@ -27,81 +28,144 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
  }
  }, [zoomOpen])
 
- return (
- <>
- <div className="space-y-3 max-w-md mx-auto">
- <button
- type="button"
- onClick={() => setZoomOpen(true)}
- className="relative group w-full aspect-square rounded-lg overflow-hidden bg-white shadow-sm border border-border cursor-zoom-in"
- >
- <Image
- className="w-full h-full object-contain p-3"
- alt={title}
- src={activeImage}
- fill
- priority
- />
- <div className="absolute right-3 bottom-3 px-2 py-1 rounded-full bg-black/55 text-white text-[10px] font-semibold">
- Zoom
- </div>
- </button>
- 
- {images.length > 1 && (
- <div className="grid grid-cols-5 gap-2">
- {images.slice(0, 8).map((imgUrl, idx) => (
- <button
- key={idx}
- type="button"
- onClick={() => setActiveIndex(idx)}
- className={cn(
- 'relative aspect-square rounded-md overflow-hidden ring-1 bg-white',
- idx === activeIndex ? 'ring-primary ring-2' : 'ring-border hover:opacity-80'
- )}
- aria-label={`Open image ${idx + 1}`}
- >
- <Image
- className="w-full h-full object-cover"
- alt={`${title} image ${idx + 1}`}
- src={imgUrl}
- fill
- sizes="(max-width: 768px) 25vw, 15vw"
- />
- </button>
- ))}
- </div>
- )}
- </div>
+  return (
+    <>
+      <div className="space-y-3 max-w-md mx-auto">
+        <div className="relative group w-full aspect-square rounded-2xl overflow-hidden bg-surface-container-lowest shadow-sm border border-border">
+          <button
+            type="button"
+            onClick={() => setZoomOpen(true)}
+            className="w-full h-full cursor-zoom-in"
+          >
+            <Image
+              className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]"
+              alt={title}
+              src={activeImage}
+              fill
+              priority
+            />
+            <div className="absolute right-4 bottom-4 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="material-symbols-outlined text-sm">zoom_in</span>
+              Zoom
+            </div>
+          </button>
 
- {zoomOpen && (
- <div
- className="fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4"
- onClick={() => setZoomOpen(false)}
- >
- <button
- type="button"
- onClick={() => setZoomOpen(false)}
- className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 text-white hover:bg-white/25"
- aria-label="Close zoom"
- >
- <span className="material-symbols-outlined">close</span>
- </button>
+          {/* Quick Navigation Arrows for main view */}
+          {images.length > 1 && (
+            <>
+              <button 
+                onClick={() => setActiveIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-on-surface opacity-0 group-hover:opacity-100 transition-all hover:bg-white"
+              >
+                <span className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+              <button 
+                onClick={() => setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-on-surface opacity-0 group-hover:opacity-100 transition-all hover:bg-white"
+              >
+                <span className="material-symbols-outlined text-base">chevron_right</span>
+              </button>
+            </>
+          )}
+        </div>
+        
+        {images.length > 1 && (
+          <div className="grid grid-cols-5 gap-2">
+            {images.slice(0, 10).map((imgUrl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setActiveIndex(idx)}
+                className={cn(
+                  'relative aspect-square rounded-xl overflow-hidden ring-2 transition-all',
+                  idx === activeIndex ? 'ring-primary' : 'ring-transparent hover:ring-border opacity-70 hover:opacity-100'
+                )}
+                aria-label={`View image ${idx + 1}`}
+              >
+                <Image
+                  className="w-full h-full object-cover"
+                  alt={`${title} thumbnail ${idx + 1}`}
+                  src={imgUrl}
+                  fill
+                  sizes="80px"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
- <div
- className="relative w-[80vw] h-[80vh]"
- onClick={(e) => e.stopPropagation()}
- >
- <Image
- src={activeImage}
- alt={title}
- fill
- className="object-contain"
- sizes="80vw"
- priority
- />
- </div>
- </div>
- )}
- </>
- )
+      {/* Improved Zoom Overlay via Portal */}
+      {zoomOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-black flex flex-col items-center justify-center select-none"
+          onClick={() => setZoomOpen(false)}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'black' }}
+        >
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={() => setZoomOpen(false)}
+            className="absolute top-6 right-6 w-14 h-14 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors z-[100000]"
+            aria-label="Close zoom"
+          >
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+
+          {/* Counter */}
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full bg-white/10 text-white text-sm font-bold tracking-widest z-[100000]">
+            {activeIndex + 1} / {images.length}
+          </div>
+
+          {/* Image Container */}
+          <div
+            className="relative w-full h-full flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {activeImage ? (
+              <img
+                src={activeImage}
+                alt={title}
+                className="max-w-full max-h-full object-contain shadow-2xl transition-all duration-300 animate-in zoom-in-95"
+                loading="eager"
+                style={{ display: 'block' }}
+              />
+            ) : (
+              <div className="text-white text-sm">Image not found</div>
+            )}
+
+            {/* Navigation Arrows for Zoom */}
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
+                  }}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/5 hover:bg-white/15 text-white flex items-center justify-center transition-all z-[100000] border border-white/5"
+                >
+                  <span className="material-symbols-outlined text-5xl">chevron_left</span>
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
+                  }}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white/5 hover:bg-white/15 text-white flex items-center justify-center transition-all z-[100000] border border-white/5"
+                >
+                  <span className="material-symbols-outlined text-5xl">chevron_right</span>
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Info */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30 text-[10px] font-black uppercase tracking-widest px-4 py-2 border border-white/5 rounded-full">
+            Esc to close • ← → to browse
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  )
 }

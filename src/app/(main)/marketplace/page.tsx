@@ -51,7 +51,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
  const MARKETPLACE_LISTING_FEED_SELECT = `
  id, seller_id, title, price, listing_type, rental_price, rental_period,
- condition, category, campus, images, status, moderation, view_count,
+ condition, category, campus, images, status, moderation, view_count, save_count,
  created_at, is_featured, featured_until,
  seller:profiles!seller_id!inner(id,username,full_name,avatar_url,follower_count,role)
  `
@@ -62,9 +62,10 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
  // ── Data Fetching Logic (Parallelized) ──────────────────────────────
  const statsCacheKey = 'marketplace:stats:global'
- const [statsCached, userWishlistRaw] = await Promise.all([
+ const [statsCached, userWishlistRaw, userLikesRaw] = await Promise.all([
  cacheService.get<any>(statsCacheKey),
- user ? supabase.from('wishlist').select('listing_id').eq('user_id', user.id) : Promise.resolve({ data: [] })
+ user ? supabase.from('wishlist').select('listing_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
+ user ? supabase.from('likes').select('blog_id, post_id').eq('user_id', user.id) : Promise.resolve({ data: [] })
  ])
 
  let catCountMap: Record<string, number> = {}
@@ -80,6 +81,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
  }
 
  const userWishlist = new Set<string>((userWishlistRaw.data as any[] || []).map((w) => w.listing_id))
+ const userLikes = new Set<string>((userLikesRaw.data as any[] || []).map((l) => l.blog_id || l.post_id).filter(Boolean))
 
  let dbResults: any[] = []
  let totalCount = 0
@@ -165,7 +167,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
  *,
  owner:profiles!owner_id!inner(username, full_name, avatar_url, role)
  `
- let query = supabase.from('communities').select(COMMUNITY_SELECT, { count: 'exact' })
+  let query = supabase.from('communities').select(COMMUNITY_SELECT, { count: 'exact' }).eq('moderation', 'approved')
  // Removed source filtering to combine Admin and Student hubs
 
  if (searchParams.q) query = query.textSearch('search_vector', searchParams.q, { config: 'english', type: 'websearch' })
@@ -311,6 +313,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
  itemsPerPage={ITEMS_PER_PAGE}
  view={currentView}
  userWishlist={userWishlist}
+ userLikes={userLikes}
  />
  </MarketplaceViewShell>
  </div>

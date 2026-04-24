@@ -18,6 +18,7 @@ interface MarketplaceInfiniteFeedProps {
  itemsPerPage: number
  view: 'items' | 'blogs' | 'communities'
  userWishlist: Set<string>
+ userLikes: Set<string>
 }
 
 export function MarketplaceInfiniteFeed({
@@ -26,6 +27,7 @@ export function MarketplaceInfiniteFeed({
  itemsPerPage,
  view,
  userWishlist,
+ userLikes,
 }: MarketplaceInfiniteFeedProps) {
  const { isSidebarOpen } = useMarketplace()
  const searchParams = useSearchParams()
@@ -90,7 +92,7 @@ export function MarketplaceInfiniteFeed({
  view === 'items' ? (
  <ListingCard key={item.id} listing={item} isSaved={userWishlist.has(item.id)} />
  ) : view === 'blogs' ? (
- <BlogCard key={item.id} blog={item} />
+ <BlogCard key={item.id} blog={item} isLiked={userLikes.has(item.id)} />
  ) : (
  <CommunityCard key={item.id} community={item} />
  )

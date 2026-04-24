@@ -185,7 +185,7 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  const [filePreview, setFilePreview] = useState<string | null>(null)
  const [replyingTo, setReplyingTo] = useState<ThreadMessagePreview | null>(null)
  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
- const [isAnonymousChat, setIsAnonymousChat] = useState(false)
+
  const preserveScrollRef = useRef<{ height: number; top: number } | null>(null)
  const threadIdsRef = useRef<Set<string>>(new Set())
 
@@ -532,7 +532,7 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  content: newMessage.trim(),
  attachment_url: attachmentUrl,
  parent_id: replyingTo?.id,
- is_anonymous: isAnonymousChat
+ is_anonymous: false
  }),
  })
 
@@ -1216,20 +1216,7 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  <span className="material-symbols-outlined text-[22px]">sentiment_satisfied</span>
  </button>
 
- {profile.role === 'admin' && (
- <button 
- onClick={() => setIsAnonymousChat(!isAnonymousChat)}
- className={cn(
- "w-10 h-10 flex items-center justify-center rounded-xl transition-all mb-0.5",
- isAnonymousChat ? "bg-slate-800 text-white shadow-lg" : "text-slate-400 hover:bg-slate-100 hover:text-slate-800"
- )}
- title={isAnonymousChat ? "Post as Anonymous" : "Post as Public"}
- >
- <span className="material-symbols-outlined text-[20px]">
- {isAnonymousChat ? 'visibility_off' : 'visibility'}
- </span>
- </button>
- )}
+
 
  {showEmojiPicker && (
  <div 

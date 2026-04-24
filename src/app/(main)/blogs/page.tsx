@@ -154,6 +154,7 @@ export default async function BlogsPage({
  itemsPerPage={ITEMS_PER_PAGE}
  view={currentView}
  userWishlist={new Set()}
+ userLikes={new Set()}
  />
  </MarketplaceViewShell>
  </div>

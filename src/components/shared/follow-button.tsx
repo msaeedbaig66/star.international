@@ -20,7 +20,7 @@ export function FollowButton({
 }: FollowButtonProps) {
  const [isFollowing, setIsFollowing] = useState(initialIsFollowing)
  const [followerCount, setFollowerCount] = useState(initialFollowerCount)
- const [loading, setLoading] = useState(false)
+ 
  const serverStateRef = useRef({ following: initialIsFollowing, count: initialFollowerCount })
  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -43,7 +43,6 @@ export function FollowButton({
  
  setIsFollowing(nextFollowing)
  setFollowerCount(nextCount)
- setLoading(true)
 
  // Dispatch global sync event
  dispatchSync({ type: 'user-follow', id: userId, state: nextFollowing, count: nextCount });
@@ -54,7 +53,6 @@ export function FollowButton({
  debounceTimerRef.current = setTimeout(async () => {
  // Net-zero check
  if (nextFollowing === serverStateRef.current.following) {
- setLoading(false)
  return
  }
 
@@ -77,18 +75,15 @@ export function FollowButton({
  // Rollback
  setIsFollowing(serverStateRef.current.following)
  setFollowerCount(serverStateRef.current.count)
- } finally {
- setLoading(false)
  }
- }, 1000)
+ }, 800)
  }
 
  return (
  <div className={`flex ${compact ? 'items-center gap-3' : 'flex-col sm:flex-row sm:items-center gap-3'}`}>
  <button 
  onClick={handleFollowToggle}
- disabled={loading}
- className={`${compact ? 'px-6 py-2.5 text-[10px]' : 'px-10 py-3.5 text-xs'} rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all ${isFollowing ? 'bg-surface text-text-primary border border-border shadow-none' : 'bg-primary text-white shadow-primary/20'} ${loading ? 'opacity-50' : 'opacity-100'}`}
+ className={`${compact ? 'px-6 py-2.5 text-[10px]' : 'px-10 py-3.5 text-xs'} rounded-full font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all ${isFollowing ? 'bg-surface text-text-primary border border-border shadow-none' : 'bg-primary text-white shadow-primary/20'}`}
  >
  {isFollowing ? 'Following' : 'Follow'}
  </button>

@@ -35,9 +35,24 @@ export async function GET(req: Request) {
 
  if (error) throw error;
 
+ // Redact anonymous actors
+ const redactedData = data.map(n => {
+   if (n.is_anonymous) {
+     return {
+       ...n,
+       actor: {
+         id: 'anonymous',
+         username: 'Anonymous',
+         avatar_url: null
+       }
+     }
+   }
+   return n
+ })
+
  const nextCursor = data.length === limit ? data[data.length - 1].created_at : null
 
- return NextResponse.json({ data, nextCursor, error: null })
+ return NextResponse.json({ data: redactedData, nextCursor, error: null })
  } catch (error: any) {
  console.error('Notifications GET Error:', error)
  return NextResponse.json({ data: null, error: 'Internal server error' }, { status: 500 })

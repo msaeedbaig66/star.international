@@ -1,7 +1,8 @@
-/* Refreshed CSS for Academic Hierarchy */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Refreshed CSS for Academic Hierarchy */
 
 /* ── Professional Web Standards: Fluid Motion & Typography ── */
 :root {
@@ -58,6 +59,36 @@ body {
 }
 
 @layer components {
+  @keyframes like-pop {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.4); }
+    50% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-like-pop {
+    animation: like-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .like-button-glow {
+    position: relative;
+  }
+
+  .like-button-glow::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .like-button-glow.active::after {
+    opacity: 0.2;
+  }
+
  /* Haptic Feedback Utility */
  .btn-haptic {
  @apply active:scale-95 transition-transform duration-200;
@@ -176,3 +207,13 @@ body {
 }
 
 
+
+/* Premium Animations */
+@layer components {
+  @keyframes scan { 0% { top: -10%; opacity: 0; } 50% { opacity: 0.5; } 100% { top: 110%; opacity: 0; } }
+  .animate-scan { animation: scan 4s linear infinite; }
+  @keyframes slow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .animate-slow-spin { animation: slow-spin 20s linear infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(3deg); } }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+}

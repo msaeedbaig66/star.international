@@ -92,6 +92,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  const [slotRequestLoading, setSlotRequestLoading] = useState(false)
  const [hasPublished, setHasPublished] = useState(false)
  const [isOfficial, setIsOfficial] = useState(false)
+ const [moderationStatus, setModerationStatus] = useState<string | null>(null)
 
  const draftKey = profile?.id ? `allpanga_sell_item_draft_${profile.id}` : null
 
@@ -109,6 +110,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setImages([])
  setContactPref('chat')
  setIsOfficial(false)
+ setModerationStatus(null)
  setError('')
  }
 
@@ -181,6 +183,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setImages(data.images || [])
  setContactPref(data.contact_preference === 'phone' ? 'phone' : 'chat')
  setIsOfficial(!!data.is_official)
+ setModerationStatus(data.moderation || 'pending')
  setIsEditing(true)
  }
  }, [profile.id])
@@ -491,6 +494,8 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setTimeout(() => setHasPublished(false), 2000)
 
  if (isEditing) {
+ toast.success('Listing updated and sent for review.')
+ setLoading(false)
  router.push('/dashboard?tab=listings')
  router.refresh()
  } else {
@@ -512,9 +517,23 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  {isEditing ? 'Edit Listing' : 'Sell an Item'}
  </h1>
  <p className="text-text-secondary text-lg mt-1">
- Fill in the details below. Your listing will be reviewed by our team before going live.
+ {isEditing 
+ ? 'Update your item details. Changes will be sent for review.' 
+ : 'Fill in the details below. Your listing will be reviewed by our team before going live.'}
  </p>
  </header>
+
+ {isEditing && (moderationStatus === 'pending' || moderationStatus === 'rejected') && (
+ <div className="bg-blue-50 text-blue-700 p-4 rounded-xl flex items-start gap-3 border border-blue-200 animate-in fade-in slide-in-from-top-2">
+ <span className="material-symbols-outlined mt-0.5 text-blue-600">info</span>
+ <div>
+ <p className="text-sm font-bold uppercase tracking-wider mb-0.5">Re-submission Mode</p>
+ <p className="text-xs font-medium opacity-90">
+ You are editing a {moderationStatus === 'pending' ? 'pending' : 'rejected'} listing. Once you save, it will be automatically sent back to our team for a fresh review.
+ </p>
+ </div>
+ </div>
+ )}
 
  {/* Info Banner */}
  <div className="bg-warning-light text-warning p-4 rounded-xl flex items-start gap-3 border border-warning/20">
@@ -900,7 +919,6 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  )}
 
  {/* Buttons */}
- {/* Buttons */}
  <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
  <Button
  variant="outline"
@@ -924,7 +942,9 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  {hasPublished ? (
  <span className="material-symbols-outlined text-2xl animate-in zoom-in duration-300">check_circle</span>
  ) : (
- isEditing ? 'Update Listing' : 'Publish Listing'
+ isEditing 
+ ? (moderationStatus === 'approved' ? 'Update Listing' : 'Update & Resubmit') 
+ : 'Publish Listing'
  )}
  </Button>
  </div>

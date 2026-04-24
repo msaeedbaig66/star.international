@@ -110,14 +110,14 @@ export function CommunityPostComposer({ communityId, canPost, currentUserId, vie
  }
 
  return (
- <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-xl border border-border group focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+ <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-5 md:p-10 shadow-xl border border-border group focus-within:ring-4 focus-within:ring-primary/5 transition-all overflow-hidden">
  <div className="space-y-6">
  <div className="flex flex-col gap-5 pb-6 border-b border-surface">
  <div className="flex flex-wrap items-center gap-2">
  <button
  type="button"
  onClick={() => setIsQuestion(true)}
- className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
+ className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
  isQuestion 
  ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/20' 
  : 'bg-white text-text-muted border-border hover:border-amber-600/30'
@@ -130,7 +130,7 @@ export function CommunityPostComposer({ communityId, canPost, currentUserId, vie
  <button
  type="button"
  onClick={() => setIsQuestion(false)}
- className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
+ className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
  !isQuestion 
  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
  : 'bg-white text-text-muted border-border hover:border-primary/30'
@@ -142,21 +142,35 @@ export function CommunityPostComposer({ communityId, canPost, currentUserId, vie
  </button>
  </div>
  
- <div className="flex items-center justify-between md:justify-start gap-2 md:gap-4">
- <button
- type="button"
- onClick={() => setIsAnonymous(!isAnonymous)}
- className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
- isAnonymous 
- ? 'bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-800/20' 
- : 'bg-white text-text-muted border-border hover:border-slate-800/30'
- }`}
- title="Post as Anonymous"
- disabled={submitting}
- >
- <span className="material-symbols-outlined text-[14px] md:text-sm">{isAnonymous ? 'visibility_off' : 'visibility'}</span>
- {isAnonymous ? 'Anonymous' : 'Public'}
- </button>
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div className="flex p-1 bg-surface border border-border rounded-xl">
+  <button
+  type="button"
+  onClick={() => setIsAnonymous(false)}
+  className={`flex items-center gap-1.5 md:gap-2 px-3.5 md:px-5 py-1.5 md:py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${
+  !isAnonymous 
+  ? 'bg-white text-primary shadow-sm border border-primary/10' 
+  : 'text-text-muted hover:text-text-primary'
+  }`}
+  disabled={submitting}
+  >
+  <span className="material-symbols-outlined text-xs md:text-sm">visibility</span>
+  Public
+  </button>
+  <button
+  type="button"
+  onClick={() => setIsAnonymous(true)}
+  className={`flex items-center gap-1.5 md:gap-2 px-3.5 md:px-5 py-1.5 md:py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${
+  isAnonymous 
+  ? 'bg-slate-800 text-white shadow-lg shadow-slate-800/20' 
+  : 'text-text-muted hover:text-text-primary'
+  }`}
+  disabled={submitting}
+  >
+  <span className="material-symbols-outlined text-xs md:text-sm">visibility_off</span>
+  Anonymous
+  </button>
+  </div>
 
  <div className="flex items-center gap-2">
  <div className="hidden md:block w-px h-6 bg-border mx-1" />

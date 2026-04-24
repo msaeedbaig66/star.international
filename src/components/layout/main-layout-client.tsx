@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { PageReveal } from '@/components/shared/page-reveal'
 
 
 export function MainLayoutClient({ 
@@ -20,7 +21,7 @@ export function MainLayoutClient({
  <div className={cn('flex flex-col', isDashboard ? 'h-screen overflow-hidden' : 'min-h-screen')}>
  {!isDashboard && navbar}
  <main className={cn('flex-1', isDashboard ? 'overflow-hidden relative' : '')}>
- {children}
+ <PageReveal key={pathname}>{children}</PageReveal>
  </main>
  {!isDashboard && footer}
  </div>

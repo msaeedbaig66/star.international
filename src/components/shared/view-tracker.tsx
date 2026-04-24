@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 
 interface ViewTrackerProps {
  targetId: string
- type: 'blog' | 'listing'
+ type: 'blog' | 'listing' | 'post'
 }
 
 /**

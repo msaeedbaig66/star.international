@@ -22,7 +22,6 @@ export function BlogSidebarEngagement({
  initialLikeCount 
 }: BlogSidebarEngagementProps) {
  const [content, setContent] = useState('')
- const [isAnonymous, setIsAnonymous] = useState(false)
  const [submitting, setSubmitting] = useState(false)
  const router = useRouter()
 
@@ -43,7 +42,7 @@ export function BlogSidebarEngagement({
  body: JSON.stringify({
  content: trimmed,
  blog_id: blogId,
- is_anonymous: isAnonymous
+ is_anonymous: false
  }),
  })
 
@@ -104,16 +103,7 @@ export function BlogSidebarEngagement({
  disabled={!canComment || submitting}
  />
  <div className="flex items-center justify-between mt-3 gap-2">
- <button
- type="button"
- onClick={() => setIsAnonymous(!isAnonymous)}
- className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
- isAnonymous ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-text-muted border-border'
- }`}
- >
- <span className="material-symbols-outlined text-[14px]">{isAnonymous ? 'visibility_off' : 'visibility'}</span>
- {isAnonymous ? 'Anonymous' : 'Public'}
- </button>
+
  <button
  onClick={handlePostComment}
  disabled={submitting || !content.trim()}

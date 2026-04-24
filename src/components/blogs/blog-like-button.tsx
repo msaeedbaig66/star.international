@@ -20,13 +20,25 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  const serverStateRef = useRef({ liked: initialIsLiked, count: initialLikeCount })
  // Ref to track the debounce timer
  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+ const [popped, setPopped] = useState(false)
 
- // Keep in sync with server state if it changes externally (e.g. page navigation)
+ // Ref to track the last local interaction time
+ const lastInteractionRef = useRef<number>(0)
+
+ const lastIdRef = useRef(blogId)
+ 
+ // Keep in sync with server state ONLY when the blog changes or if we're not in the middle of an interaction
  useEffect(() => {
+ const idChanged = blogId !== lastIdRef.current
+ const isRecentlyModified = Date.now() - lastInteractionRef.current < 3000
+ 
+ if (idChanged || (!isRecentlyModified && (initialIsLiked !== serverStateRef.current.liked || initialLikeCount !== serverStateRef.current.count))) {
  setIsLiked(initialIsLiked)
  setLikeCount(initialLikeCount)
  serverStateRef.current = { liked: initialIsLiked, count: initialLikeCount }
- }, [initialIsLiked, initialLikeCount])
+ if (idChanged) lastIdRef.current = blogId
+ }
+ }, [blogId, initialIsLiked, initialLikeCount])
 
  // LISTEN for external sync events
  useSyncListener('blog-like', blogId, (nextState, nextCount) => {
@@ -43,6 +55,12 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  setIsLiked(nextLiked)
  setLikeCount(nextCount)
  setIsPending(true)
+ lastInteractionRef.current = Date.now()
+
+ if (nextLiked) {
+ setPopped(true)
+ setTimeout(() => setPopped(false), 450)
+ }
 
  // 2b. Dispatch global sync event
  dispatchSync({ type: 'blog-like', id: blogId, state: nextLiked, count: nextCount });
@@ -93,8 +111,9 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  className={cn(
  "w-12 h-12 rounded-full border flex items-center justify-center shadow-lg transition-all active:scale-90",
  isLiked 
- ? "bg-primary text-white border-primary shadow-primary/20 scale-105" 
- : "bg-white text-text-muted hover:bg-slate-50 border-slate-200"
+ ? "bg-rose-500 text-white border-rose-500 shadow-rose-200" 
+ : "bg-white text-text-muted hover:bg-slate-50 border-slate-200",
+ popped && "animate-like-pop"
  )}
  >
  <span
@@ -129,7 +148,8 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  onClick={handleLikeToggle}
  className={cn(
  "w-24 h-24 rounded-full flex items-center justify-center mb-4 group cursor-pointer transition-all active:scale-75 shadow-xl border-4 border-white",
- isLiked ? "bg-primary/10 text-primary" : "bg-slate-50 text-slate-300"
+ isLiked ? "bg-rose-50 text-rose-500" : "bg-slate-50 text-slate-300",
+ popped && "animate-like-pop"
  )}
  >
  <span
@@ -139,7 +159,7 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  favorite
  </span>
  {isLiked && (
- <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-20" />
+ <div className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-20" />
  )}
  </button>
  {isPending && (
@@ -162,10 +182,10 @@ export function BlogLikeButton({ blogId, initialIsLiked, initialLikeCount, varia
  : "bg-primary text-white hover:bg-primary-hover shadow-primary/25"
  )}
  >
- <span className={cn(
- "material-symbols-outlined transition-transform duration-500 group-hover:scale-125",
- isLiked && "fill-current"
- )}>
+ <span 
+ className="material-symbols-outlined transition-transform duration-500 group-hover:scale-125"
+ style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}
+ >
  favorite
  </span>
  {isLiked ? 'Loved this story' : 'Like this story'}

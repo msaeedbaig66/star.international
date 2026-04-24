@@ -13,6 +13,8 @@ import { UserLink } from '@/components/shared/navigation-links'
 import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { ViewTracker } from '@/components/shared/view-tracker'
+import { SafeTime } from '@/components/shared/safe-time'
 
 interface CommunityIssuesFeedProps {
  initialPosts: any[]
@@ -50,6 +52,18 @@ export function CommunityIssuesFeed({
  const [submittingForPostId, setSubmittingForPostId] = useState<string | null>(null)
  const [submittingReplyForCommentId, setSubmittingReplyForCommentId] = useState<string | null>(null)
  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+ const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (activeMenuId && !(e.target as Element).closest('.action-menu-container')) {
+        setActiveMenuId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [activeMenuId])
  const [confirmDeletePostId, setConfirmDeletePostId] = useState<string | null>(null)
  const [userLikedCommentIds, setUserLikedCommentIds] = useState<Set<string>>(
  () => new Set((initialComments || []).filter(c => c.isLiked).map(c => c.id))
@@ -58,6 +72,7 @@ export function CommunityIssuesFeed({
  () => new Set((initialPosts || []).filter(p => p.isLiked).map(p => p.id))
  )
  const [isAnonymousReply, setIsAnonymousReply] = useState<Record<string, boolean>>({}) // key: postId or parentId
+ const [poppedId, setPoppedId] = useState<string | null>(null)
  
  // Track ground truth for net-zero optimization
  const serverStateCommentsRef = useRef<Record<string, { liked: boolean, count: number }>>({})
@@ -168,6 +183,7 @@ export function CommunityIssuesFeed({
  }
 
  setComments(prev => [newComment, ...prev])
+ setPosts(prev => prev.map(p => p.id === postId ? { ...p, reply_count: (p.reply_count || 0) + 1 } : p))
 
  try {
  if (parentId) setSubmittingReplyForCommentId(parentId)
@@ -203,6 +219,7 @@ export function CommunityIssuesFeed({
  } catch (error: any) {
  toast.error(error?.message || 'Unable to post')
  setComments(prev => prev.filter(c => c.id !== tempId))
+ setPosts(prev => prev.map(p => p.id === postId ? { ...p, reply_count: Math.max(0, (p.reply_count || 0) - 1) } : p))
  } finally {
  if (parentId) setSubmittingReplyForCommentId(null)
  else setSubmittingForPostId(null)
@@ -217,6 +234,14 @@ export function CommunityIssuesFeed({
  if (!res.ok) throw new Error('Failed to delete comment')
  toast.success('Comment deleted')
  
+ // Calculate how many items are being removed (comment + its replies)
+ const itemsToRemove = comments.filter(c => c.id === commentId || c.parent_id === commentId)
+ const removedCount = itemsToRemove.length
+
+ // Update local states
+ setComments(prev => prev.filter(c => c.id !== commentId && c.parent_id !== commentId))
+ setPosts(prev => prev.map(p => p.id === postId ? { ...p, reply_count: Math.max(0, (p.reply_count || 0) - removedCount) } : p))
+
  setConfirmDeleteId(null)
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete')
@@ -233,9 +258,14 @@ export function CommunityIssuesFeed({
  const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' })
  if (!res.ok) throw new Error('Failed to delete discussion')
  
- toast.success('Discussion deleted')
- setPosts(prev => prev.filter(p => p.id !== postId))
- setConfirmDeletePostId(null)
+    toast.success('Discussion deleted')
+    setPosts(prev => prev.filter(p => p.id !== postId))
+    setComments(prev => prev.filter(c => c.post_id !== postId))
+    setConfirmDeletePostId(null)
+
+    if (initialExpandedId === postId) {
+      router.push(ROUTES.communities.detail(communityId))
+    }
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete')
  } finally {
@@ -298,6 +328,11 @@ export function CommunityIssuesFeed({
  setComments(prev => prev.map(c => 
  c.id === commentId ? { ...c, like_count: nextCount } : c
  ))
+
+ if (nextLiked) {
+ setPoppedId(commentId)
+ setTimeout(() => setPoppedId(null), 450)
+ }
 
  // 2. Debounced API Sync
  if (debounceTimersRef.current[commentId]) clearTimeout(debounceTimersRef.current[commentId])
@@ -363,6 +398,11 @@ export function CommunityIssuesFeed({
  setPosts(prev => prev.map(p => 
  p.id === postId ? { ...p, like_count: nextCount } : p
  ))
+
+ if (nextLiked) {
+ setPoppedId(postId)
+ setTimeout(() => setPoppedId(null), 450)
+ }
 
  // 2. Debounced API Sync
  const timerKey = `post_${postId}`
@@ -514,7 +554,7 @@ export function CommunityIssuesFeed({
  return (
  <article
  key={post.id}
- className={`bg-white rounded-[2.5rem] border overflow-hidden transition-all duration-500 ${
+ className={`bg-white rounded-[2.5rem] border transition-all duration-500 ${
  isExpanded ? 'border-primary/40 shadow-2xl ring-1 ring-primary/5' : 'border-border hover:border-primary/25 hover:shadow-xl'
  }`}
  >
@@ -526,23 +566,24 @@ export function CommunityIssuesFeed({
  <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-6">
  <div className="flex-1 w-full text-left">
  <div className="flex items-center flex-wrap gap-2 md:gap-3 mb-4">
- <span className={`px-2.5 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest ${post.is_question ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'}`}>
- {post.is_question ? 'Support Issue' : 'Discussion'}
- </span>
- {post.is_completed && (
- <span className="px-2.5 md:px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
- <span className="material-symbols-outlined text-[11px] md:text-[12px]">check_circle</span>
- Done
- </span>
- )}
+  <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] ${post.is_question ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-primary/5 text-primary border border-primary/10'}`}>
+  {post.is_question ? 'Support Issue' : 'Discussion'}
+  </span>
+  {post.is_completed && (
+  <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black uppercase tracking-[0.1em] flex items-center gap-1">
+  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+  Resolved
+  </span>
+  )}
  {post.moderation === 'pending' && (
  <span className="px-2.5 md:px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-[9px] md:text-[10px] font-black uppercase tracking-widest animate-pulse">
  Pending
  </span>
  )}
- <span className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
- {formatDistanceToNow(new Date(post.created_at))} ago
- </span>
+  <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
+  <SafeTime date={post.created_at} />
+  <span>ago</span>
+  </div>
  </div>
  <h3 className="text-xl md:text-3xl font-black tracking-tight text-text-primary leading-[1.2] md:leading-[1.15]">
  {post.title}
@@ -578,88 +619,76 @@ export function CommunityIssuesFeed({
  )}
  </div>
 
- <div className="flex md:flex-col items-center justify-between md:justify-center p-3 md:p-4 bg-surface rounded-2xl md:rounded-3xl w-full md:min-w-[100px] border border-border/50 relative">
- <div className="flex flex-row md:flex-col items-center gap-2 md:absolute md:-top-3 md:-right-3 z-20 order-2 md:order-1">
- <button
- onClick={(e) => { e.stopPropagation(); togglePostLike(post.id); }}
- className={cn(
- "w-7 h-7 md:w-8 md:h-8 rounded-full border shadow-lg flex items-center justify-center transition-all active:scale-75",
- userLikedPostIds.has(post.id) 
- ? "bg-rose-500 text-white border-rose-500 shadow-rose-200" 
- : "bg-white text-slate-400 border-border hover:text-rose-500 hover:bg-rose-50"
- )}
- title={userLikedPostIds.has(post.id) ? 'Unlike Discussion' : 'Like Discussion'}
- >
- <span className="material-symbols-outlined text-[14px] md:text-[16px]" style={{ fontVariationSettings: userLikedPostIds.has(post.id) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
- </button>
+  <div className="flex flex-col items-center gap-2">
+  <button
+  onClick={(e) => { e.stopPropagation(); togglePostLike(post.id); }}
+  className={cn(
+  "w-9 h-9 rounded-xl border shadow-sm flex items-center justify-center transition-all active:scale-75",
+  userLikedPostIds.has(post.id) 
+  ? "bg-rose-500 text-white border-rose-500 shadow-rose-200" 
+  : "bg-white text-slate-400 border-border hover:text-rose-500 hover:bg-rose-50",
+  poppedId === post.id && "animate-like-pop"
+  )}
+  title={userLikedPostIds.has(post.id) ? 'Unlike Discussion' : 'Like Discussion'}
+  >
+  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: userLikedPostIds.has(post.id) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+  </button>
 
- {(currentUserId === communityOwnerId || isViewerAdmin) && (
- <button
- onClick={(e) => { e.stopPropagation(); togglePinPost(post.id, post.is_pinned); }}
- className={`w-7 h-7 md:w-8 md:h-8 rounded-full border shadow-lg flex items-center justify-center transition-all ${
- post.is_pinned ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white text-text-muted hover:text-primary border-border'
- }`}
- title={post.is_pinned ? 'Unpin Discussion' : 'Pin Discussion'}
- >
- <span className="material-symbols-outlined text-sm" style={post.is_pinned ? { fontVariationSettings: "'FILL' 1" } : {}}>push_pin</span>
- </button>
- )}
- 
- {(currentUserId === communityOwnerId || isViewerAdmin) && (
- <button
- onClick={(e) => { e.stopPropagation(); toggleCompletePost(post.id, post.is_completed); }}
- className={`w-7 h-7 md:w-8 md:h-8 rounded-full border shadow-lg flex items-center justify-center transition-all ${
- post.is_completed ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-text-muted hover:text-emerald-500 border-border'
- }`}
- title={post.is_completed ? 'Mark as Active' : 'Mark as Completed'}
- >
- <span className="material-symbols-outlined text-sm" style={post.is_completed ? { fontVariationSettings: "'FILL' 1" } : {}}>check_circle</span>
- </button>
- )}
- 
- {canDeletePost(post) && (
- <div className="relative">
- {confirmDeletePostId === post.id ? (
- <div className="flex items-center gap-2 bg-white shadow-xl border border-border p-1 md:p-1.5 px-2 md:px-3 rounded-full absolute right-0 top-0 whitespace-nowrap animate-in slide-in-from-right-2 fade-in duration-200 z-50">
- <span className="text-[8px] md:text-[9px] font-black text-text-primary uppercase mr-1">Delete?</span>
- <button
- onClick={(e) => { e.stopPropagation(); removePost(post.id); }}
- className="text-[8px] md:text-[9px] font-black text-white bg-destructive px-2 md:px-3 py-1 rounded-full uppercase hover:bg-destructive/90 transition-all"
- >
- Yes
- </button>
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeletePostId(null); }}
- className="text-[8px] md:text-[9px] font-black text-text-muted uppercase px-1 hover:text-text-primary transition-all"
- >
- No
- </button>
- </div>
- ) : (
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeletePostId(post.id); }}
- className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white text-rose-500 border border-border/50 shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all group/trash"
- title="Delete Discussion"
- >
- <span className="material-symbols-outlined text-sm group-hover/trash:scale-110 transition-transform">delete</span>
- </button>
- )}
- </div>
- )}
- </div>
+  {(currentUserId === communityOwnerId || isViewerAdmin) && (
+  <button
+  onClick={(e) => { e.stopPropagation(); togglePinPost(post.id, post.is_pinned); }}
+  className={`w-9 h-9 rounded-xl border shadow-sm flex items-center justify-center transition-all ${
+  post.is_pinned ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white text-text-muted hover:text-primary border-border'
+  }`}
+  title={post.is_pinned ? 'Unpin Discussion' : 'Pin Discussion'}
+  >
+  <span className="material-symbols-outlined text-lg" style={post.is_pinned ? { fontVariationSettings: "'FILL' 1" } : {}}>push_pin</span>
+  </button>
+  )}
+  
+  {(currentUserId === communityOwnerId || isViewerAdmin) && (
+  <button
+  onClick={(e) => { e.stopPropagation(); toggleCompletePost(post.id, post.is_completed); }}
+  className={`w-9 h-9 rounded-xl border shadow-sm flex items-center justify-center transition-all ${
+  post.is_completed ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-text-muted hover:text-emerald-500 border-border'
+  }`}
+  title={post.is_completed ? 'Mark as Active' : 'Mark as Completed'}
+  >
+  <span className="material-symbols-outlined text-lg" style={post.is_completed ? { fontVariationSettings: "'FILL' 1" } : {}}>check_circle</span>
+  </button>
+  )}
+  
+   {canDeletePost(post) && (
+   <div className="relative action-menu-container">
+   <button
+   onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === post.id ? null : post.id); }}
+   className={cn(
+   "w-9 h-9 rounded-xl border shadow-sm flex items-center justify-center transition-all",
+   activeMenuId === post.id ? "bg-primary text-white border-primary" : "bg-white text-slate-400 border-border hover:bg-surface"
+   )}
+   >
+   <span className="material-symbols-outlined text-lg">more_vert</span>
+   </button>
+   
+   {activeMenuId === post.id && (
+   <div className="absolute left-0 right-auto top-full mt-2 w-48 bg-white border border-border shadow-2xl rounded-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+   <div className="p-2 border-b border-surface">
+   <p className="text-[9px] font-black uppercase tracking-widest text-text-muted px-3 py-1">Options</p>
+   </div>
+   <button
+   onClick={(e) => { e.stopPropagation(); removePost(post.id); setActiveMenuId(null); }}
+   className="w-full flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 transition-colors text-left"
+   >
+   <span className="material-symbols-outlined text-lg">delete</span>
+   <span className="text-xs font-black uppercase tracking-tight">Delete Issue</span>
+   </button>
+   </div>
+   )}
+   </div>
+   )}
+  </div>
 
- <div className="flex items-center gap-4 md:flex-col md:gap-0 order-1 md:order-2">
- <div className="flex flex-col items-center">
- <span className="text-lg md:text-2xl font-black text-text-primary leading-tight">{post.like_count || 0}</span>
- <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-text-muted">Likes</span>
- </div>
- <div className="hidden md:block w-8 h-px bg-border/50 my-2" />
- <div className="flex flex-col items-center">
- <span className="text-base md:text-xl font-black text-text-primary/60 leading-tight">{topLevel.length}</span>
- <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-text-muted">Replies</span>
- </div>
- </div>
- </div>
+
  </div>
  
  {post.is_pinned && (
@@ -677,26 +706,51 @@ export function CommunityIssuesFeed({
  </p>
  </div>
  
- <div className="flex items-center justify-end gap-2 text-primary group-hover:gap-4 transition-all">
- <span className="text-[10px] md:text-sm font-black uppercase tracking-widest">
- {isExpanded ? 'Hide' : 'Join Discussion'}
- </span>
- <span className="material-symbols-outlined text-[16px] md:text-lg">
- {isExpanded ? 'keyboard_arrow_up' : 'trending_flat'}
- </span>
- </div>
+  <div className="flex items-center gap-6 md:gap-8 flex-1">
+  <div className="flex items-center gap-2 group/stat">
+  <span className="material-symbols-outlined text-[16px] md:text-[18px] text-rose-400" style={{ fontVariationSettings: userLikedPostIds.has(post.id) ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+  <div className="flex flex-col">
+  <span className="text-[10px] md:text-xs font-black text-text-primary tabular-nums">{post.like_count || 0}</span>
+  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-text-muted">Likes</span>
+  </div>
+  </div>
+  <div className="flex items-center gap-2 group/stat">
+  <span className="material-symbols-outlined text-[16px] md:text-[18px] text-primary">chat_bubble</span>
+  <div className="flex flex-col">
+  <span className="text-[10px] md:text-xs font-black text-text-primary tabular-nums">{topLevel.length}</span>
+  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-text-muted">Replies</span>
+  </div>
+  </div>
+  <div className="flex items-center gap-2 group/stat">
+  <span className="material-symbols-outlined text-[16px] md:text-[18px] text-slate-300">visibility</span>
+  <div className="flex flex-col">
+  <span className="text-[10px] md:text-xs font-black text-text-primary tabular-nums">{post.view_count || 0}</span>
+  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-text-muted">Views</span>
+  </div>
+  </div>
+  </div>
+  
+  <div className="flex items-center justify-end gap-3 text-primary group-hover:gap-5 transition-all bg-primary/5 px-6 py-2.5 rounded-full hover:bg-primary/10 border border-primary/10">
+  <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] ml-1">
+  {isExpanded ? 'Minimize' : 'Join Discussion'}
+  </span>
+  <span className="material-symbols-outlined text-[18px] md:text-xl">
+  {isExpanded ? 'keyboard_arrow_up' : 'trending_flat'}
+  </span>
+  </div>
  </div>
  </div>
 
  {/* Conversation Feed */}
  {isExpanded && (
  <div className="bg-surface/30 p-8 md:p-10 space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
+ <ViewTracker targetId={post.id} type="post" />
  {/* Main Reply Box */}
  <div className="relative bg-white rounded-[2rem] p-6 shadow-sm border border-border group focus-within:ring-4 focus-within:ring-primary/5 transition-all">
  <div className="flex gap-4">
- <div className="shrink-0 w-10 h-10 rounded-full bg-surface-muted flex items-center justify-center text-text-muted">
- <span className="material-symbols-outlined text-xl">account_circle</span>
- </div>
+  <div className="shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface-muted flex items-center justify-center text-text-muted">
+  <span className="material-symbols-outlined text-lg md:text-xl">account_circle</span>
+  </div>
  <div className="flex-1 space-y-4">
  <textarea onClick={(e) => e.stopPropagation()}
  value={postDrafts[post.id] || ''}
@@ -705,30 +759,39 @@ export function CommunityIssuesFeed({
  placeholder={canInteract ? 'Add your perspective or help with this issue...' : 'Please join the community to discuss this issue.'}
  disabled={!canInteract || submittingForPostId === post.id}
  />
-  <div className="flex flex-col gap-4 pt-2">
-  <div className="flex items-center justify-between">
+   <div className="flex flex-col gap-4">
+   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
   <span className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
   {(postDrafts[post.id] || '').length}/500 chars
   </span>
-  <div className="flex items-center gap-2">
-  {!canInteract && currentUserId && (
-  <span className="text-[8px] md:text-[9px] font-black text-rose-500 uppercase tracking-tight bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
-  Join Community to Reply
-  </span>
-  )}
+   <div className="flex flex-wrap items-center gap-2">
+   {!canInteract && currentUserId && (
+   <span className="text-[8px] md:text-[9px] font-black text-rose-500 uppercase tracking-tight bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+   Join Community to Reply
+   </span>
+   )}
+  <div className="flex p-0.5 bg-surface border border-border rounded-lg">
   <button
-  type="button"
-  onClick={() => setIsAnonymousReply(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+  onClick={() => setIsAnonymousReply(prev => ({ ...prev, [post.id]: false }))}
   className={cn(
-  "flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest border transition-all",
-  isAnonymousReply[post.id] ? "bg-slate-800 text-white border-slate-800" : "bg-white text-text-muted border-border"
+  "px-3 py-1.5 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1.5",
+  !isAnonymousReply[post.id] ? "bg-white text-primary shadow-sm border border-primary/10" : "text-text-muted hover:text-text-primary"
   )}
   >
-  <span className="material-symbols-outlined text-[12px] md:text-[14px]">
-  {isAnonymousReply[post.id] ? 'visibility_off' : 'visibility'}
-  </span>
-  {isAnonymousReply[post.id] ? 'Anon' : 'Public'}
+  <span className="material-symbols-outlined text-xs">visibility</span>
+  Public
   </button>
+  <button
+  onClick={() => setIsAnonymousReply(prev => ({ ...prev, [post.id]: true }))}
+  className={cn(
+  "px-3 py-1.5 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1.5",
+  isAnonymousReply[post.id] ? "bg-slate-800 text-white shadow-sm" : "text-text-muted hover:text-text-primary"
+  )}
+  >
+  <span className="material-symbols-outlined text-xs">visibility_off</span>
+  Anon
+  </button>
+  </div>
   </div>
   </div>
   <button
@@ -767,14 +830,15 @@ export function CommunityIssuesFeed({
  <UserLink user={comment.author} size="sm" showName={false} isAnonymous={comment.is_anonymous} viewerRole={isViewerAdmin ? 'admin' : 'user'} />
  </div>
  
- <div className="flex-1 bg-white border border-border rounded-2xl md:rounded-[2rem] p-4 md:p-6 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] group-hover/comment:shadow-md transition-all overflow-hidden">
+ <div className="flex-1 bg-white border border-border rounded-2xl md:rounded-[2rem] p-4 md:p-6 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] group-hover/comment:shadow-md transition-all relative">
  <div className="flex items-start justify-between mb-3">
  <div className="flex items-center flex-wrap gap-2">
  <UserLink user={comment.author} size="xs" isAnonymous={comment.is_anonymous} viewerRole={isViewerAdmin ? 'admin' : 'user'} />
  <span className="hidden md:block w-1 h-1 rounded-full bg-text-muted/30"></span>
- <span className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
- {formatDistanceToNow(new Date(comment.created_at))} ago
- </span>
+  <div className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest">
+  <SafeTime date={comment.created_at} />
+  <span>ago</span>
+  </div>
  {comment.is_pinned && (
  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] md:text-[9px] font-black uppercase tracking-tighter">
  <span className="material-symbols-outlined text-[10px] fill-current" style={{ fontVariationSettings: "'FILL' 1" }}>push_pin</span>
@@ -797,33 +861,29 @@ export function CommunityIssuesFeed({
  )}
  
  {canDeleteComment(post, comment) && (
- <div className="relative flex items-center gap-2">
- {confirmDeleteId === comment.id ? (
- <div className="flex items-center gap-2 bg-destructive/5 p-1 px-3 rounded-full border border-destructive/20 animate-in fade-in zoom-in duration-300 z-50 absolute right-0 top-0 bg-white shadow-xl whitespace-nowrap">
- <span className="text-[8px] md:text-[9px] font-black text-destructive uppercase tracking-tighter">Delete?</span>
- <button
- onClick={(e) => { e.stopPropagation(); removeComment(post.id, comment.id); }}
- className="text-[8px] md:text-[9px] font-black text-white bg-destructive px-2 md:px-3 py-1 rounded-full uppercase hover:bg-destructive/90 transition-all"
- >
- Yes
- </button>
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
- className="text-[8px] md:text-[9px] font-black text-text-muted hover:text-text-primary uppercase"
- >
- No
- </button>
- </div>
- ) : (
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(comment.id); }}
- className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all shadow-sm group/trash"
- title="Delete comment"
- >
- <span className="material-symbols-outlined text-[14px] md:text-sm group-hover/trash:scale-110 transition-transform">delete</span>
- </button>
- )}
- </div>
+  <div className="relative action-menu-container">
+  <button
+  onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === comment.id ? null : comment.id); }}
+  className={cn(
+  "w-7 h-7 rounded-full flex items-center justify-center transition-all",
+  activeMenuId === comment.id ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-surface"
+  )}
+  >
+  <span className="material-symbols-outlined text-[14px]">more_vert</span>
+  </button>
+  
+  {activeMenuId === comment.id && (
+  <div className="absolute left-0 right-auto top-full mt-1 w-32 bg-white border border-border shadow-2xl rounded-lg z-[100] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+  <button
+  onClick={(e) => { e.stopPropagation(); removeComment(post.id, comment.id); setActiveMenuId(null); }}
+  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 transition-colors text-left"
+  >
+  <span className="material-symbols-outlined text-sm">delete</span>
+  <span className="text-[9px] font-black uppercase tracking-tight">Delete</span>
+  </button>
+  </div>
+  )}
+  </div>
  )}
  </div>
  </div>
@@ -833,15 +893,17 @@ export function CommunityIssuesFeed({
  </p>
  
  <div className="mt-4 md:mt-6 flex items-center gap-4 md:gap-6">
- <button
- onClick={() => toggleLike(comment.id)}
- className={`flex items-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
- userLikedCommentIds.has(comment.id) ? 'text-primary' : 'text-text-muted hover:text-primary'
- }`}
- >
- <span className={`material-symbols-outlined text-base md:text-lg ${userLikedCommentIds.has(comment.id) ? 'fill' : ''}`} style={userLikedCommentIds.has(comment.id) ? { fontVariationSettings: "'FILL' 1" } : {}}>
- thumb_up
- </span>
+  <button
+  onClick={() => toggleLike(comment.id)}
+  className={cn(
+  "flex items-center gap-1.5 md:gap-2 transition-all active:scale-90",
+  userLikedCommentIds.has(comment.id) ? "text-rose-500" : "text-text-muted hover:text-rose-500",
+  poppedId === comment.id && "animate-like-pop"
+  )}
+  >
+  <span className="material-symbols-outlined text-base md:text-lg" style={{ fontVariationSettings: userLikedCommentIds.has(comment.id) ? "'FILL' 1" : "'FILL' 0" }}>
+  favorite
+  </span>
  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{comment.like_count || 0}</span>
  </button>
  <button
@@ -869,38 +931,37 @@ export function CommunityIssuesFeed({
  <p className="text-[10px] md:text-xs font-black text-text-primary uppercase tracking-tight truncate max-w-[80px] md:max-w-none">
  {reply.is_anonymous ? 'Member' : (reply.author?.full_name || 'Alumni')}
  </p>
- <span className="text-[8px] md:text-[9px] font-bold text-text-muted uppercase tracking-widest whitespace-nowrap">
- • {formatDistanceToNow(new Date(reply.created_at))} ago
- </span>
+  <div className="flex items-center gap-1 text-[8px] md:text-[9px] font-bold text-text-muted uppercase tracking-widest whitespace-nowrap">
+  <span>•</span>
+  <SafeTime date={reply.created_at} />
+  <span>ago</span>
+  </div>
  </div>
  
  {canDeleteComment(post, reply) && (
- <div className="relative">
- {confirmDeleteId === reply.id ? (
- <div className="flex items-center gap-1.5 bg-white shadow-xl border border-border p-1 px-2 rounded-full absolute right-0 top-0 z-50 animate-in slide-in-from-right-1 fade-in duration-200 whitespace-nowrap">
- <button
- onClick={(e) => { e.stopPropagation(); removeComment(post.id, reply.id); }}
- className="text-[8px] font-black text-white bg-destructive px-2 py-0.5 rounded-full uppercase"
- >
- Del
- </button>
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
- className="text-[8px] font-black text-text-muted uppercase px-1"
- >
- X
- </button>
- </div>
- ) : (
- <button
- onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(reply.id); }}
- className="w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-all"
- title="Delete reply"
- >
- <span className="material-symbols-outlined text-[12px] md:text-[14px]">delete</span>
- </button>
- )}
- </div>
+  <div className="relative action-menu-container">
+  <button
+  onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === reply.id ? null : reply.id); }}
+  className={cn(
+  "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+  activeMenuId === reply.id ? "text-primary bg-primary/10" : "text-text-muted hover:text-primary hover:bg-surface"
+  )}
+  >
+  <span className="material-symbols-outlined text-[14px]">more_vert</span>
+  </button>
+  
+  {activeMenuId === reply.id && (
+  <div className="absolute left-0 right-auto top-full mt-1 w-32 bg-white border border-border shadow-2xl rounded-lg z-[100] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+  <button
+  onClick={(e) => { e.stopPropagation(); removeComment(post.id, reply.id); setActiveMenuId(null); }}
+  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 transition-colors text-left"
+  >
+  <span className="material-symbols-outlined text-sm">delete</span>
+  <span className="text-[9px] font-black uppercase tracking-tight">Delete</span>
+  </button>
+  </div>
+  )}
+  </div>
  )}
  </div>
  <p className="text-[11px] md:text-xs font-medium text-text-secondary leading-normal break-words">
@@ -927,7 +988,8 @@ export function CommunityIssuesFeed({
 
  {/* Inline Reply Form */}
  {replyingToCommentId === comment.id && (
- <div className="mt-6 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+ <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+ <div className="flex gap-3">
  <textarea onClick={(e) => e.stopPropagation()}
  value={replyDrafts[comment.id] || ''}
  onChange={(e) =>
@@ -939,12 +1001,41 @@ export function CommunityIssuesFeed({
  disabled={!canInteract || submittingReplyForCommentId === comment.id}
  />
  <button
- onClick={() => createComment({ postId: post.id, parentId: comment.id })}
+ onClick={() => createComment({ postId: post.id, parentId: comment.id, isAnonymous: isAnonymousReply[comment.id] })}
  disabled={submittingReplyForCommentId === comment.id || !(replyDrafts[comment.id] || '').trim()}
  className="shrink-0 w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50"
  >
  <span className="material-symbols-outlined text-lg">send</span>
  </button>
+ </div>
+ 
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
+ <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">
+ {(replyDrafts[comment.id] || '').length}/500 chars
+ </span>
+ <div className="flex p-0.5 bg-surface border border-border rounded-lg">
+ <button
+ onClick={() => setIsAnonymousReply(prev => ({ ...prev, [comment.id]: false }))}
+ className={cn(
+ "px-2.5 py-1 rounded-md text-[8px] font-black uppercase transition-all flex items-center gap-1",
+ !isAnonymousReply[comment.id] ? "bg-white text-primary shadow-sm border border-primary/10" : "text-text-muted hover:text-text-primary"
+ )}
+ >
+ <span className="material-symbols-outlined text-[10px]">visibility</span>
+ Public
+ </button>
+ <button
+ onClick={() => setIsAnonymousReply(prev => ({ ...prev, [comment.id]: true }))}
+ className={cn(
+ "px-2.5 py-1 rounded-md text-[8px] font-black uppercase transition-all flex items-center gap-1",
+ isAnonymousReply[comment.id] ? "bg-slate-800 text-white shadow-sm" : "text-text-muted hover:text-text-primary"
+ )}
+ >
+ <span className="material-symbols-outlined text-[10px]">visibility_off</span>
+ Anon
+ </button>
+ </div>
+ </div>
  </div>
  )}
  </div>

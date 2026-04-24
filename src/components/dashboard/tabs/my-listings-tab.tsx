@@ -146,6 +146,7 @@ export function MyListingsTab({ profile }: MyListingsTabProps) {
  .eq('id', id)
  .eq('seller_id', profile.id)
  if (error) throw error
+ toast.success('Item marked as sold.')
  await loadListings()
  } catch (error: any) {
  toast.error(error?.message || 'Unable to mark listing as sold')
@@ -161,6 +162,7 @@ export function MyListingsTab({ profile }: MyListingsTabProps) {
  .eq('id', id)
  .eq('seller_id', profile.id)
  if (error) throw error
+ toast.success('Item re-listed successfully.')
  await loadListings()
  } catch (error: any) {
  toast.error(error?.message || 'Unable to re-list item')
@@ -413,7 +415,7 @@ export function MyListingsTab({ profile }: MyListingsTabProps) {
  {listing.status !== 'sold' ? (
  <div className="flex w-full gap-1.5">
  <button onClick={() => router.push(`/dashboard?tab=sell&edit=${listing.id}`)} className="flex-1 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600">
- <span className="material-symbols-outlined text-[18px]">edit</span>
+ <span className={cn("material-symbols-outlined text-[18px]", listing.moderation === "pending" && "text-warning")}>{listing.moderation === "pending" ? "edit_note" : "edit"}</span>
  </button>
  {listing.moderation === 'approved' && (
  <button onClick={() => handleMarkSold(listing.id)} className="flex-1 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
@@ -484,51 +486,71 @@ export function MyListingsTab({ profile }: MyListingsTabProps) {
  <td className="px-4 py-4">{getStatusBadge(listing)}</td>
  <td className="px-4 py-4 text-sm text-text-secondary hidden md:table-cell">{formatDate(listing.created_at)}</td>
  <td className="px-4 py-4 text-right rounded-r-xl">
- <div className="flex justify-end gap-1">
- {listing.status === 'removed' ? (
- (() => {
- const softDeleteMeta = parseSoftDeleteNote(listing.rejection_note)
- const canRecover = isSoftDeleteRecoverable(softDeleteMeta)
- return softDeleteMeta ? (
- <HydratedOnly fallback={<div className="w-20 h-8 bg-surface animate-pulse rounded-lg" />}>
- <button onClick={() => handleRecover(listing.id)} disabled={!canRecover} className="px-3 py-1.5 flex items-center justify-center rounded-lg border border-primary/20 text-[10px] font-black uppercase tracking-widest gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-primary" title={canRecover ? 'Undo delete' : 'Recovery window expired'}>
- <span className="material-symbols-outlined text-[16px]">history</span>
- {canRecover ? 'Recover' : 'Expired'}
- </button>
- </HydratedOnly>
- ) : (
- <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Removed</span>
- )
- })()
- ) : listing.moderation === 'rejected' ? (
- <>
- <button onClick={() => toggleRejection(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white text-text-secondary hover:text-primary transition-all shadow-sm border border-border">
- <span className="material-symbols-outlined text-[18px]">{expandedRejections.has(listing.id) ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
- </button>
- <button onClick={() => setDeleteConfirm(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-destructive-light hover:text-destructive text-text-secondary transition-all">
- <span className="material-symbols-outlined text-[18px]">delete</span>
- </button>
- </>
- ) : listing.status !== 'sold' ? (
- <>
- {listing.moderation === 'approved' && listing.status !== 'removed' && (
- (() => {
- const pendingReq = pendingFeatureByEntity[listing.id]
- const featuredActive = !!listing.is_featured && isFeatureActive(listing.featured_until)
- if (featuredActive) return <HydratedOnly><button disabled className="px-3 py-1.5 rounded-lg border border-success/20 text-[10px] font-black uppercase tracking-widest text-success bg-success-light/40 cursor-not-allowed">Featured</button></HydratedOnly>
- return <HydratedOnly><button onClick={() => openFeatureModal(listing)} disabled={!!pendingReq} className={cn('px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors', pendingReq ? 'border-border text-text-muted cursor-not-allowed' : 'border-warning/30 text-warning hover:bg-warning-light/40')}>{pendingReq ? 'Requested' : 'Feature'}</button></HydratedOnly>
- })()
- )}
- <button onClick={() => router.push(`/dashboard?tab=sell&edit=${listing.id}`)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface text-text-secondary transition-all"><span className="material-symbols-outlined text-[18px]">edit</span></button>
- {listing.moderation === 'approved' && listing.status === 'available' && (
- <button onClick={() => handleMarkSold(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-success-light text-text-secondary hover:text-success transition-all"><span className="material-symbols-outlined text-[18px]">check_circle</span></button>
- )}
- <button onClick={() => setDeleteConfirm(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-destructive-light hover:text-destructive text-text-secondary transition-all"><span className="material-symbols-outlined text-[18px]">delete</span></button>
- </>
- ) : (
- <button onClick={() => handleMarkAvailable(listing.id)} className="px-3 py-1.5 flex items-center justify-center rounded-lg hover:bg-surface text-primary border border-primary/20 transition-all text-[10px] font-black uppercase tracking-widest gap-2"><span className="material-symbols-outlined text-[16px]">replay</span>Re-list</button>
- )}
- </div>
+  <div className="flex justify-end gap-1">
+    {listing.status === 'removed' ? (
+      (() => {
+        const softDeleteMeta = parseSoftDeleteNote(listing.rejection_note)
+        const canRecover = isSoftDeleteRecoverable(softDeleteMeta)
+        return softDeleteMeta ? (
+          <HydratedOnly fallback={<div className="w-20 h-8 bg-surface animate-pulse rounded-lg" />}>
+            <button onClick={() => handleRecover(listing.id)} disabled={!canRecover} className="px-3 py-1.5 flex items-center justify-center rounded-lg border border-primary/20 text-[10px] font-black uppercase tracking-widest gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-primary" title={canRecover ? 'Undo delete' : 'Recovery window expired'}>
+              <span className="material-symbols-outlined text-[16px]">history</span>
+              {canRecover ? 'Recover' : 'Expired'}
+            </button>
+          </HydratedOnly>
+        ) : (
+          <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">Removed</span>
+        )
+      })()
+    ) : (
+      <>
+        {/* Moderation Rejection Logic */}
+        {listing.moderation === 'rejected' && (
+          <button onClick={() => toggleRejection(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white text-text-secondary hover:text-primary transition-all shadow-sm border border-border">
+            <span className="material-symbols-outlined text-[18px]">{expandedRejections.has(listing.id) ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+          </button>
+        )}
+
+        {/* Feature Button - Only for approved & available */}
+        {listing.moderation === 'approved' && listing.status === 'available' && (
+          (() => {
+            const pendingReq = pendingFeatureByEntity[listing.id]
+            const featuredActive = !!listing.is_featured && isFeatureActive(listing.featured_until)
+            if (featuredActive) return <HydratedOnly><button disabled className="px-3 py-1.5 rounded-lg border border-success/20 text-[10px] font-black uppercase tracking-widest text-success bg-success-light/40 cursor-not-allowed">Featured</button></HydratedOnly>
+            return <HydratedOnly><button onClick={() => openFeatureModal(listing)} disabled={!!pendingReq} className={cn('px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors', pendingReq ? 'border-border text-text-muted cursor-not-allowed' : 'border-warning/30 text-warning hover:bg-warning-light/40')}>{pendingReq ? 'Requested' : 'Feature'}</button></HydratedOnly>
+          })()
+        )}
+
+        {/* Global Edit Button - For everything except sold/removed */}
+        {listing.status !== 'sold' && (
+          <button 
+            onClick={() => router.push(`/dashboard?tab=sell&edit=${listing.id}`)} 
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface text-text-secondary transition-all"
+            title={listing.moderation === 'pending' ? 'Update & Resubmit' : 'Edit Listing'}
+          >
+            <span className={cn("material-symbols-outlined text-[18px]", listing.moderation === 'pending' && "text-warning")}>
+              {listing.moderation === 'pending' ? 'edit_note' : 'edit'}
+            </span>
+          </button>
+        )}
+
+        {/* Mark Sold Button */}
+        {listing.moderation === 'approved' && listing.status === 'available' && (
+          <button onClick={() => handleMarkSold(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-success-light text-text-secondary hover:text-success transition-all"><span className="material-symbols-outlined text-[18px]">check_circle</span></button>
+        )}
+
+        {/* Re-list Button */}
+        {listing.status === 'sold' && (
+          <button onClick={() => handleMarkAvailable(listing.id)} className="px-3 py-1.5 flex items-center justify-center rounded-lg hover:bg-surface text-primary border border-primary/20 transition-all text-[10px] font-black uppercase tracking-widest gap-2"><span className="material-symbols-outlined text-[16px]">replay</span>Re-list</button>
+        )}
+
+        {/* Delete Button */}
+        {listing.status !== 'removed' && (
+          <button onClick={() => setDeleteConfirm(listing.id)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-destructive-light hover:text-destructive text-text-secondary transition-all"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+        )}
+      </>
+    )}
+  </div>
  </td>
  </tr>
  {listing.moderation === 'rejected' && expandedRejections.has(listing.id) && (

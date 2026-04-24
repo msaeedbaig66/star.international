@@ -1,13 +1,14 @@
 'use client';
 
 import { ReactNode, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminSidebar } from './admin-sidebar';
 import { AdminNavbar } from './admin-navbar';
 import { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PageReveal } from '../shared/page-reveal';
 
 interface AdminShellProps {
  children: ReactNode;
@@ -28,6 +29,7 @@ interface AdminShellProps {
 
 export function AdminShell({ children, user, counts, initialUnlockStatus = false }: AdminShellProps) {
  const router = useRouter();
+ const pathname = usePathname();
  const supabase = createClient();
  const [isCollapsed, setIsCollapsed] = useState(false);
  const [isMounted, setIsMounted] = useState(false);
@@ -179,7 +181,7 @@ export function AdminShell({ children, user, counts, initialUnlockStatus = false
  
  <main className="flex-1 p-8 pt-24 min-h-screen overflow-x-hidden">
  <div className="max-w-[1440px] mx-auto animate-in fade-in duration-500">
- {children}
+ <PageReveal key={pathname}>{children}</PageReveal>
  </div>
  </main>
  </div>

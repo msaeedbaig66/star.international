@@ -35,7 +35,7 @@ export async function RecentBlogs() {
  .select(HOME_BLOG_SELECT)
  .eq('moderation', 'approved')
  .order('is_featured', { ascending: false })
- .order('featured_until', { ascending: false })
+ .order('like_count', { ascending: false })
  .order('created_at', { ascending: false })
  .limit(20)
 

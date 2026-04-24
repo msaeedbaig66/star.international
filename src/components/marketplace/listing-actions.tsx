@@ -134,7 +134,7 @@ export function ListingActions({
  className={`w-full py-4 border-2 border-primary text-primary rounded-full font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 active:scale-[0.98]`}
  >
  <span className="material-symbols-outlined" style={{ fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
- {isSaved ? 'Saved to Wishlist' : 'Save to Wishlist'}
+ {isSaved ? 'Saved' : 'Save to Wishlist'}
  </button>
  </div>
  )

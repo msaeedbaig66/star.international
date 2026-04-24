@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const blogIdSchema = z.string().uuid()
 
@@ -24,16 +25,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
  if (likeError && likeError.code !== '23505') throw likeError
 
- // Fetch the ground-truth updated count from the blogs table
- const { data: blog } = await supabase
- .from('blogs')
- .select('like_count')
- .eq('id', blogId)
- .single()
+ // Fetch the ground-truth updated count bypassing RLS
+ const admin = createAdminClient()
+ const { count } = await admin
+ .from('likes')
+ .select('*', { count: 'exact', head: true })
+ .eq('blog_id', blogId)
 
  return NextResponse.json({ 
  liked: true, 
- like_count: blog?.like_count || 0 
+ like_count: count || 0 
  })
  } catch (error: any) {
  if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
@@ -58,16 +59,16 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
  
  if (unlikeError) throw unlikeError
 
- // Fetch refreshed count
- const { data: blog } = await supabase
- .from('blogs')
- .select('like_count')
- .eq('id', blogId)
- .single()
+ // Fetch the ground-truth updated count bypassing RLS
+ const admin = createAdminClient()
+ const { count } = await admin
+ .from('likes')
+ .select('*', { count: 'exact', head: true })
+ .eq('blog_id', blogId)
 
  return NextResponse.json({ 
  liked: false, 
- like_count: blog?.like_count || 0 
+ like_count: count || 0 
  })
  } catch (error: any) {
  if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })

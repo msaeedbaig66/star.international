@@ -290,19 +290,19 @@ interface CategoryBreadcrumbProps {
 }
 
 export function CategoryBreadcrumb({ crumbs, className }: CategoryBreadcrumbProps) {
- return (
- <nav className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted mb-6", className)}>
- <Link href={ROUTES.home()} className="hover:text-primary transition-colors">Home</Link>
- {crumbs.map((crumb, idx) => (
- <React.Fragment key={idx}>
- <span className="material-symbols-outlined text-[12px] opacity-30">chevron_right</span>
- {idx === crumbs.length - 1 ? (
- <span className="text-text-primary">{crumb.label}</span>
- ) : (
- <Link href={crumb.href} className="hover:text-primary transition-colors">{crumb.label}</Link>
- )}
- </React.Fragment>
- ))}
- </nav>
- );
+  return (
+    <nav className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted mb-6 overflow-hidden", className)}>
+      <Link href={ROUTES.home()} className="hover:text-primary transition-colors flex-shrink-0">Home</Link>
+      {crumbs.map((crumb, idx) => (
+        <React.Fragment key={idx}>
+          <span className="material-symbols-outlined text-[12px] opacity-30 flex-shrink-0">chevron_right</span>
+          {idx === crumbs.length - 1 ? (
+            <span className="text-text-primary truncate min-w-0 flex-1">{crumb.label}</span>
+          ) : (
+            <Link href={crumb.href} className="hover:text-primary transition-colors flex-shrink-0 whitespace-nowrap">{crumb.label}</Link>
+          )}
+        </React.Fragment>
+      ))}
+    </nav>
+  );
 }

@@ -173,7 +173,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  sizes="100vw"
  />
  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
- <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 max-w-7xl mx-auto right-0 z-10">
+ <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-7xl mx-auto right-0 z-10">
  <span className="inline-block px-4 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold tracking-widest uppercase mb-4">
  {blog.field || 'General'}
  </span>
@@ -195,7 +195,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  <span className="material-symbols-outlined text-[18px]">schedule</span>
  <span>{readMinutes} min read</span>
  </div>
- <div className="flex items-center gap-4 ml-auto bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs">
+ <div className="flex items-center gap-4 md:ml-auto bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs">
  <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px]">visibility</span> {blog.view_count || 0}</span>
  <InteractionCounter 
  id={blog.id} 
@@ -224,7 +224,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  <div className="flex-1 max-w-3xl">
  <article className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-[0px_12px_44px_rgba(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-12">
  {/* Unified Header & Author Section */}
- <div className="p-8 md:p-12 pb-6 border-b border-slate-50 bg-slate-50/30">
+ <div className="p-6 md:p-12 pb-6 border-b border-slate-50 bg-slate-50/30">
  <div className="flex items-start gap-6">
  <UserLink user={author} size="lg" showName={false} viewerRole={viewerRole} />
  <div className="flex-1">
@@ -262,7 +262,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
  </div>
 
  {/* Seamless Content Transition */}
- <div className="p-8 md:p-14 lg:p-16">
+ <div className="p-6 md:p-14 lg:p-16">
  {blog.excerpt && (
  <div className="relative mb-12">
  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary rounded-full opacity-20" />
@@ -274,7 +274,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
 
  <BlogMediaEnhancer>
  <div
- className="blog-html-content prose prose-lg sm:prose-xl max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-[1.8] prose-strong:text-slate-900 prose-a:text-primary prose-img:rounded-3xl prose-img:shadow-2xl prose-img:my-16"
+ className="blog-html-content prose prose-lg sm:prose-xl max-w-none break-words overflow-x-hidden prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-[1.8] prose-strong:text-slate-900 prose-a:text-primary prose-img:rounded-3xl prose-img:shadow-2xl prose-img:my-16"
  dangerouslySetInnerHTML={{ __html: contentWithIds }}
  />
  </BlogMediaEnhancer>

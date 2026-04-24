@@ -20,8 +20,10 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
 
  // Shipping & Payment Logic
  const isOfficePickup = formData.courier === 'OFFICE'
- const isOutsideFaisalabad = !isOfficePickup && formData.city.trim().toLowerCase() !== 'faisalabad' && formData.city.trim() !== ''
- const shippingCostBase = isOutsideFaisalabad ? 200 : 0
+ const hasCityEntry = formData.city.trim() !== ''
+ 
+ // Apply delivery charges for ANY city if it's not office pickup
+ const shippingCostBase = (!isOfficePickup && hasCityEntry) ? 200 : 0
  const codSurcharge = (!isOfficePickup && formData.paymentMethod === 'COD') ? 50 : 0
  const totalShipping = shippingCostBase + codSurcharge
  

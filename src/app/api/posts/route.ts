@@ -114,10 +114,34 @@ export async function GET(request: Request) {
  .eq('moderation', 'approved')
  .order('is_pinned', { ascending: false })
  .order('created_at', { ascending: false })
- .range(from, to)
- if (error) throw error
+  if (error) throw error
 
- return NextResponse.json({ data, error: null })
+  // Get viewer role for admin reveal
+  const viewerRole = user ? await getViewerRole(supabase, user.id) : 'guest'
+
+  // Redact anonymous authors for privacy, except for the author themselves or admins
+  const redactedData = data.map(post => {
+    if (post.is_anonymous) {
+      const isAuthor = user?.id === post.author_id
+      const isAdmin = viewerRole === 'admin'
+      
+      if (!isAuthor && !isAdmin) {
+        return {
+          ...post,
+          author_id: 'anonymous', // Mask the ID for others
+          author: {
+            id: 'anonymous',
+            username: 'Anonymous',
+            full_name: 'Anonymous Student',
+            avatar_url: null
+          }
+        }
+      }
+    }
+    return post
+  })
+
+  return NextResponse.json({ data: redactedData, error: null })
  } catch (error: any) {
  return NextResponse.json({ data: null, error: 'Failed to process post' }, { status: 500 })
  }

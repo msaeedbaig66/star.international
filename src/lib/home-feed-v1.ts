@@ -1,5 +1,6 @@
 import type { Listing, Profile } from '@/types/database'
 import { createClient } from '@/lib/supabase/server'
+import { cacheService } from '@/lib/cache-service'
 
 type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -55,6 +56,7 @@ const FEED_LISTING_SELECT = `
  status,
  moderation,
  view_count,
+ save_count,
  created_at,
  updated_at,
  is_featured,
@@ -264,25 +266,40 @@ export async function getHomeFeedListingsV1({
  const listingIds = listings.map((item) => item.id)
  const daySeed = new Date().toISOString().slice(0, 10)
 
- const [wishlistGlobalRes, chatGlobalRes] = await Promise.all([
- supabase.from('wishlist').select('listing_id').in('listing_id', listingIds),
- supabase.from('message_threads').select('listing_id').in('listing_id', listingIds),
- ])
- if (wishlistGlobalRes.error) throw wishlistGlobalRes.error
- if (chatGlobalRes.error) throw chatGlobalRes.error
-
+ // PERFORMANCE: Use save_count from the listings table directly (maintained by trigger)
+ // instead of fetching every wishlist row. Only fetch chat thread counts.
  const wishlistCountByListing = new Map<string, number>()
  const chatCountByListing = new Map<string, number>()
 
- for (const row of (wishlistGlobalRes.data || []) as Array<{ listing_id?: string | null }>) {
- const listingId = row.listing_id
- if (!listingId) continue
- wishlistCountByListing.set(listingId, (wishlistCountByListing.get(listingId) || 0) + 1)
+ for (const listing of listings) {
+ wishlistCountByListing.set(listing.id, Number((listing as any).save_count || 0))
  }
- for (const row of (chatGlobalRes.data || []) as Array<{ listing_id?: string | null }>) {
+
+ // Chat counts: use cached data when available
+ const chatCacheKey = `feed:chat-counts:${daySeed}`
+ let cachedChatCounts = await cacheService.get<Record<string, number>>(chatCacheKey)
+
+ if (cachedChatCounts) {
+ for (const [id, count] of Object.entries(cachedChatCounts)) {
+ chatCountByListing.set(id, count)
+ }
+ } else {
+ const { data: chatGlobalData, error: chatGlobalError } = await supabase
+ .from('message_threads')
+ .select('listing_id')
+ .in('listing_id', listingIds)
+ if (chatGlobalError) throw chatGlobalError
+
+ for (const row of (chatGlobalData || []) as Array<{ listing_id?: string | null }>) {
  const listingId = row.listing_id
  if (!listingId) continue
  chatCountByListing.set(listingId, (chatCountByListing.get(listingId) || 0) + 1)
+ }
+
+ // Cache chat counts for 10 minutes (not real-time sensitive)
+ const chatCountsObj: Record<string, number> = {}
+ chatCountByListing.forEach((v, k) => { chatCountsObj[k] = v })
+ await cacheService.set(chatCacheKey, chatCountsObj, 600)
  }
 
  const maxLogViews = Math.max(...listings.map((item) => Math.log1p(Math.max(0, Number(item.view_count || 0)))), 0)
