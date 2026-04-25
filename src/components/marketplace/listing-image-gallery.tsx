@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 
@@ -40,7 +41,7 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
             <Image
               className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]"
               alt={title}
-              src={activeImage}
+              src={getOptimizedImageUrl(activeImage, 800, 800)}
               fill
               priority
             />
@@ -85,7 +86,7 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
                 <Image
                   className="w-full h-full object-cover"
                   alt={`${title} thumbnail ${idx + 1}`}
-                  src={imgUrl}
+                  src={getOptimizedImageUrl(imgUrl, 200, 200)}
                   fill
                   sizes="80px"
                 />
@@ -124,7 +125,7 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
           >
             {activeImage ? (
               <img
-                src={activeImage}
+                src={getOptimizedImageUrl(activeImage, 1600, 1600)}
                 alt={title}
                 className="max-w-full max-h-full object-contain shadow-2xl transition-all duration-300 animate-in zoom-in-95"
                 loading="eager"

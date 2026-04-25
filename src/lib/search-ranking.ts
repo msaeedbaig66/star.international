@@ -65,6 +65,25 @@ export function toSafeLikeTerm(value: string): string {
  return value.replace(/[,%_().]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+/**
+ * Converts a natural language query into a Postgres TSQuery string.
+ * Example: "blue shirt" -> "blue & shirt"
+ */
+export function toTsQuery(query: string): string {
+ if (!query || typeof query !== 'string') return ''
+ 
+ // Normalize and tokenize
+ const tokens = query
+  .toLowerCase()
+  .replace(/[^\w\s]/g, ' ') // Remove special chars
+  .trim()
+  .split(/\s+/)
+  .filter(token => token.length > 0)
+  .map(token => `${token}:*`) // Add prefix matching for each word
+
+ return tokens.join(' & ')
+}
+
 export function buildSearchOrFilter(fields: string[], terms: string[]): string {
  const uniqueTerms = Array.from(new Set(terms.map(toSafeLikeTerm).filter(Boolean))).slice(0, 6)
  const clauses: string[] = []

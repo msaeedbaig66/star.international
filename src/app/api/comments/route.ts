@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { commentSchema } from '@/lib/validations/comment'
 import { deliverTargetedNotifications } from '@/lib/notification-delivery'
+import { performModeration } from '@/lib/moderation'
 
 type AdminClient = ReturnType<typeof createAdminClient>
 const PUBLIC_AUTHOR_SELECT = 'id, username, full_name, avatar_url'
@@ -268,20 +269,36 @@ export async function POST(request: Request) {
  const isAdmin = viewerProfile?.role === 'admin';
  const finalIsAnonymous = (post_id || isAdmin) ? (parsed.data.is_anonymous || false) : false;
 
- const moderation = listing_id ? 'pending' : 'approved'
- const { data: commentData, error: insertError } = await supabase
- .from('comments')
- .insert({
- author_id: user.id,
- content: parsed.data.content,
- parent_id: parsed.data.parent_id,
- listing_id: parsed.data.listing_id,
- blog_id: parsed.data.blog_id,
- post_id: parsed.data.post_id,
- is_anonymous: finalIsAnonymous,
- moderation,
- like_count: 0,
- })
+  // 3. Moderation Shield
+  let moderationStatus = listing_id ? 'pending' : 'approved'
+  let moderationReason = 'Standard auto-approve'
+
+  if (isAdmin) {
+  moderationStatus = 'approved'
+  moderationReason = 'Admin bypass'
+  } else {
+  const modResult = await performModeration('Comment Content', parsed.data.content)
+  // If AI flags it, it MUST be pending. If AI approves, we keep the default (listing=pending, others=approved)
+  if (modResult.status === 'pending') {
+  moderationStatus = 'pending'
+  moderationReason = modResult.reason
+  }
+  }
+
+  const { data: commentData, error: insertError } = await supabase
+  .from('comments')
+  .insert({
+  author_id: user.id,
+  content: parsed.data.content,
+  parent_id: parsed.data.parent_id,
+  listing_id: parsed.data.listing_id,
+  blog_id: parsed.data.blog_id,
+  post_id: parsed.data.post_id,
+  is_anonymous: finalIsAnonymous,
+  moderation: moderationStatus,
+  moderation_reason: moderationReason,
+  like_count: 0,
+  })
  .select()
  .single()
 

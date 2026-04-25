@@ -5,12 +5,12 @@ import Image from 'next/image'
 import { ROUTES } from '@/lib/routes'
 import { UserLink } from '@/components/shared/navigation-links'
 import {
- buildSearchOrFilter,
- parseSearchQuery,
- rankSearchResults,
- scoreSearchDocument,
- SearchType,
- toSafeLikeTerm,
+  parseSearchQuery,
+  rankSearchResults,
+  scoreSearchDocument,
+  SearchType,
+  toSafeLikeTerm,
+  toTsQuery,
 } from '@/lib/search-ranking'
 
 export default async function SearchPage({
@@ -41,69 +41,71 @@ export default async function SearchPage({
  users: type === 'all' || type === 'users',
  }
 
- const listingsPromise = (async () => {
- if (!showResults || !shouldFetch.items) return { data: [] as any[] }
- let queryBuilder = supabase
- .from('listings')
- .select(
- 'id,title,description,price,images,category,campus,condition,created_at,view_count,is_featured,featured_until,listing_type,rental_price,rental_period,seller:profiles!seller_id(id,username,full_name,avatar_url,follower_count),wishlist_count:wishlist(count)'
- )
- .eq('moderation', 'approved')
- .eq('status', 'available')
- .limit(120)
- const orFilter = buildSearchOrFilter(['title', 'description', 'category', 'campus', 'condition'], searchTerms)
- if (orFilter) queryBuilder = queryBuilder.or(orFilter)
- if (parsed.operators.category) queryBuilder = queryBuilder.ilike('category', `%${toSafeLikeTerm(parsed.operators.category)}%`)
- if (parsed.operators.campus) queryBuilder = queryBuilder.ilike('campus', `%${toSafeLikeTerm(parsed.operators.campus)}%`)
- if (parsed.operators.minPrice !== undefined) queryBuilder = queryBuilder.gte('price', parsed.operators.minPrice)
- if (parsed.operators.maxPrice !== undefined) queryBuilder = queryBuilder.lte('price', parsed.operators.maxPrice)
- return queryBuilder
- })()
+  const listingsPromise = (async () => {
+    if (!showResults || !shouldFetch.items) return { data: [] as any[] }
+    let queryBuilder = supabase
+      .from('listings')
+      .select('id,title,description,price,images,category,campus,condition,created_at,view_count,is_featured,featured_until,listing_type,rental_price,rental_period,seller:profiles!seller_id(id,username,full_name,avatar_url,follower_count),wishlist_count:wishlist(count)')
+      .eq('moderation', 'approved')
+      .eq('status', 'available')
+      .limit(100)
 
- const blogsPromise = (async () => {
- if (!showResults || !shouldFetch.blogs) return { data: [] as any[] }
- let queryBuilder = supabase
- .from('blogs')
- .select(
- 'id,title,excerpt,cover_image,field,tags,like_count,view_count,created_at,author:profiles!author_id(id,username,full_name,avatar_url)'
- )
- .eq('moderation', 'approved')
- .limit(120)
- const orFilter = buildSearchOrFilter(['title', 'excerpt', 'field'], searchTerms)
- if (orFilter) queryBuilder = queryBuilder.or(orFilter)
- if (parsed.operators.field) queryBuilder = queryBuilder.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
- return queryBuilder
- })()
+    if (query) {
+      queryBuilder = queryBuilder.textSearch('search_vector', toTsQuery(query), { config: 'english' })
+    }
+    
+    if (parsed.operators.category) queryBuilder = queryBuilder.ilike('category', `%${toSafeLikeTerm(parsed.operators.category)}%`)
+    if (parsed.operators.campus) queryBuilder = queryBuilder.ilike('campus', `%${toSafeLikeTerm(parsed.operators.campus)}%`)
+    if (parsed.operators.minPrice !== undefined) queryBuilder = queryBuilder.gte('price', parsed.operators.minPrice)
+    if (parsed.operators.maxPrice !== undefined) queryBuilder = queryBuilder.lte('price', parsed.operators.maxPrice)
+    return queryBuilder
+  })()
 
- const communitiesPromise = (async () => {
- if (!showResults || !shouldFetch.communities) return { data: [] as any[] }
- let queryBuilder = supabase
- .from('communities')
- .select('id,name,description,field,member_count,avatar_url,created_at')
- .eq('moderation', 'approved')
- .limit(120)
- const orFilter = buildSearchOrFilter(['name', 'description', 'field'], searchTerms)
- if (orFilter) queryBuilder = queryBuilder.or(orFilter)
- if (parsed.operators.field) queryBuilder = queryBuilder.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
- return queryBuilder
- })()
+  const blogsPromise = (async () => {
+    if (!showResults || !shouldFetch.blogs) return { data: [] as any[] }
+    let queryBuilder = supabase
+      .from('blogs')
+      .select('id,title,excerpt,cover_image,field,tags,like_count,view_count,created_at,author:profiles!author_id(id,username,full_name,avatar_url)')
+      .eq('moderation', 'approved')
+      .limit(100)
 
- const usersPromise = (async () => {
- if (!showResults || !shouldFetch.users) return { data: [] as any[] }
- const userTerms = parsed.operators.field
- ? [...searchTerms, toSafeLikeTerm(parsed.operators.field)]
- : searchTerms
- let queryBuilder = supabase
- .from('profiles')
- .select(
- 'id,username,full_name,avatar_url,university,field_of_study,follower_count,following_count,rating_avg,rating_count,created_at'
- )
- .eq('is_verified', true)
- .limit(120)
- const orFilter = buildSearchOrFilter(['username', 'full_name', 'university', 'field_of_study'], userTerms)
- if (orFilter) queryBuilder = queryBuilder.or(orFilter)
- return queryBuilder
- })()
+    if (query) {
+      queryBuilder = queryBuilder.textSearch('search_vector', toTsQuery(query), { config: 'english' })
+    }
+
+    if (parsed.operators.field) queryBuilder = queryBuilder.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
+    return queryBuilder
+  })()
+
+  const communitiesPromise = (async () => {
+    if (!showResults || !shouldFetch.communities) return { data: [] as any[] }
+    let queryBuilder = supabase
+      .from('communities')
+      .select('id,name,description,field,member_count,avatar_url,created_at')
+      .eq('moderation', 'approved')
+      .limit(100)
+
+    if (query) {
+      queryBuilder = queryBuilder.textSearch('search_vector', toTsQuery(query), { config: 'english' })
+    }
+
+    if (parsed.operators.field) queryBuilder = queryBuilder.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
+    return queryBuilder
+  })()
+
+  const usersPromise = (async () => {
+    if (!showResults || !shouldFetch.users) return { data: [] as any[] }
+    let queryBuilder = supabase
+      .from('profiles')
+      .select('id,username,full_name,avatar_url,university,field_of_study,follower_count,following_count,rating_avg,rating_count,created_at')
+      .eq('is_verified', true)
+      .limit(100)
+
+    if (query) {
+      queryBuilder = queryBuilder.textSearch('search_vector', toTsQuery(query), { config: 'english' })
+    }
+    return queryBuilder
+  })()
 
  const [{ data: listingsRaw }, { data: blogsRaw }, { data: communitiesRaw }, { data: usersRaw }] = await Promise.all([
  listingsPromise,

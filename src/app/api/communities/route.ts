@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { communitySchema } from '@/lib/validations/community'
 import { generateSlug } from '@/lib/utils'
 import { isAllowedCommunityImageUrl } from '@/lib/security/media-urls'
-import { toSafeLikeTerm } from '@/lib/search-ranking'
+import { toSafeLikeTerm, toTsQuery } from '@/lib/search-ranking'
 import { cacheService } from '@/lib/cache-service'
+import { performModeration } from '@/lib/moderation'
 
 const PUBLIC_OWNER_SELECT = 'id, username, full_name, avatar_url'
 const COMMUNITY_FEED_SELECT = `
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
  query = query.eq('field', category)
  }
  if (q) {
- query = query.ilike('name', `%${toSafeLikeTerm(q)}%`)
+ query = query.textSearch('search_vector', toTsQuery(q), { config: 'english' })
  }
 
  const { data, error } = await query
@@ -128,8 +129,23 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: 'Community banner must use an approved uploaded media URL.' }, { status: 400 })
  }
 
- // 3. Generate slug
- const slug = generateSlug(name)
+  // 2.5 Moderation Check
+  let moderationStatus = 'pending'
+  let moderationReason = 'Awaiting review'
+
+  const { data: userProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  
+  if (userProfile?.role === 'admin') {
+  moderationStatus = 'approved'
+  moderationReason = 'Admin bypass'
+  } else {
+  const modResult = await performModeration(name, description || '')
+  moderationStatus = modResult.status
+  moderationReason = modResult.reason
+  }
+
+  // 3. Generate slug
+  const slug = generateSlug(name)
 
  // 4. Insert into communities table
  const { data, error } = await supabase
@@ -145,9 +161,10 @@ export async function POST(request: Request) {
  banner_url,
  rules,
  is_official: false, // Always false for user created
- moderation: 'pending',
- member_count: 1, // Owner is the first member
- post_count: 0
+  moderation: moderationStatus,
+  moderation_reason: moderationReason,
+  member_count: 1, // Owner is the first member
+  post_count: 0
  })
  .select()
  .single()

@@ -8,13 +8,13 @@ import {
 } from '@/lib/account-deletion'
 
 const PROFILE_SELECT =
- 'id, username, full_name, avatar_url, bio, university, field_of_study, city, is_verified, follower_count, following_count, rating_avg, rating_count, created_at'
+  'id, username, full_name, avatar_url, bio, university, field_of_study, city, is_verified, follower_count, following_count, rating_avg, rating_count, created_at'
 
 const updateProfileSchema = z
  .object({
  full_name: z.string().trim().min(1).max(120).optional(),
  avatar_url: z.string().trim().max(2048).optional(),
- bio: z.string().trim().max(1000).optional(),
+ bio: z.string().trim().max(2000).optional(),
  university: z.string().trim().max(200).optional(),
  field_of_study: z.string().trim().max(200).optional(),
  city: z.string().trim().max(120).optional(),

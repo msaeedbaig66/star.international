@@ -18,7 +18,7 @@ export async function POST(req: Request) {
  const { data: { user } } = await supabase.auth.getUser()
 
  if (!user) {
- return NextResponse.json({ error: 'Please login before sending support request.' }, { status: 401 })
+ return NextResponse.json({ error: 'Please log in before sending support request.' }, { status: 401 })
  }
 
  const body = await req.json().catch(() => ({}))
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
  return NextResponse.json({ error: 'Validation failed', details: parsed.error.format() }, { status: 400 })
  }
  const { name, email, subject, message } = parsed.data
+ const { escapeHtml } = await import('@/lib/utils/html-escape')
 
  const { data, error } = await supabase
  .from('support_requests')
@@ -50,11 +51,11 @@ export async function POST(req: Request) {
  html: `
  <div style="font-family: sans-serif; padding: 20px; color: #111;">
  <h2 style="color: #0070f3;">Support Request Received</h2>
- <p>Hi ${name},</p>
- <p>We've received your message regarding <strong>"${subject}"</strong>. Our team will get back to you shortly.</p>
+ <p>Hi ${escapeHtml(name)},</p>
+ <p>We've received your message regarding <strong>"${escapeHtml(subject)}"</strong>. Our team will get back to you shortly.</p>
  <hr style="border: 1px solid #eee; margin: 20px 0;" />
  <p style="font-size: 0.9em; color: #666;"><strong>Your message:</strong></p>
- <p style="font-style: italic; color: #666;">${message}</p>
+ <p style="font-style: italic; color: #666;">${escapeHtml(message)}</p>
  <hr style="border: 1px solid #eee; margin: 20px 0;" />
  <p style="font-size: 0.8em; color: #999;">This is an automated acknowledgment. Please do not reply to this email.</p>
  </div>

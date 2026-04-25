@@ -29,7 +29,7 @@ export default function ContactPage() {
  const json = await res.json().catch(() => ({}))
  if (!res.ok) {
  if (res.status === 401) {
- setError('Please login first, then submit your question.')
+ setError('Please log in first, then submit your question.')
  return
  }
  throw new Error(json?.error || 'Failed to send message')
@@ -142,7 +142,7 @@ export default function ContactPage() {
  {error}
  {error.toLowerCase().includes('login') && (
  <button type='button' onClick={() => router.push('/login')} className='ml-2 underline font-bold'>
- Go to Login
+ Go to Log In
  </button>
  )}
  </div>

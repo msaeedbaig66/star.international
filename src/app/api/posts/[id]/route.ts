@@ -132,17 +132,23 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
  if (!canDelete) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
- // 1. Delete attachments from storage if they exist
- const imagePath = extractStoragePath(post.image_url)
- const filePath = extractStoragePath(post.file_url)
- const pathsToDelete = [imagePath, filePath].filter(Boolean) as string[]
+  // 1. Delete attachments from storage (Supabase or Cloudinary) if they exist
+  const urlsToDelete = [post.image_url, post.file_url].filter(Boolean) as string[]
 
- if (pathsToDelete.length > 0) {
- const storageClient = admin || supabase
- await storageClient.storage
- .from('posts')
- .remove(pathsToDelete)
- }
+  if (urlsToDelete.length > 0) {
+    const { deleteImageByUrl } = await import('@/lib/cloudinary-server')
+    const { deleteSupabaseStorageUrls } = await import('@/lib/supabase/storage-cleanup')
+
+    const cloudinaryUrls = urlsToDelete.filter(url => url.includes('cloudinary.com'))
+    const supabaseUrls = urlsToDelete.filter(url => !url.includes('cloudinary.com'))
+
+    if (cloudinaryUrls.length > 0) {
+      await Promise.all(cloudinaryUrls.map(url => deleteImageByUrl(url).catch(err => console.error('Cloudinary cleanup error during post delete:', err))))
+    }
+    if (supabaseUrls.length > 0) {
+      await deleteSupabaseStorageUrls(queryClient, supabaseUrls).catch(err => console.error('Supabase storage cleanup error during post delete:', err))
+    }
+  }
 
  // 2. Delete database record
  const { error: deleteError } = await queryClient

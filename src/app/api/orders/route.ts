@@ -74,7 +74,20 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: "You cannot order your own item." }, { status: 403 })
  }
 
- // 5. Calculate Totals (Security: Client values ignored for financial fields)
+ // 5. Prevent duplicate pending orders
+ const { data: existingOrder } = await supabase
+ .from('orders')
+ .select('id')
+ .eq('buyer_id', user.id)
+ .eq('listing_id', listingId)
+ .eq('status', 'pending')
+ .maybeSingle()
+
+ if (existingOrder) {
+ return NextResponse.json({ error: 'You already have a pending order for this item.' }, { status: 409 })
+ }
+
+ // 6. Calculate Totals (Security: Client values ignored for financial fields)
  const calculatedTotalAmount = (dbPrice * quantity) + shippingCost + codSurcharge
 
  // 6. Create the Order

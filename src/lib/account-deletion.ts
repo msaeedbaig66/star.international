@@ -18,6 +18,7 @@ export type AccountDeletionImpact = {
  postLikeIds: Set<string>
  postReplyIds: Set<string>
  commentLikeIds: Set<string>
+ mediaUrls: Set<string>
 }
 
 function addMaybe(set: Set<string>, value: string | null | undefined) {
@@ -35,6 +36,7 @@ export function createEmptyAccountDeletionImpact(): AccountDeletionImpact {
  postLikeIds: new Set<string>(),
  postReplyIds: new Set<string>(),
  commentLikeIds: new Set<string>(),
+ mediaUrls: new Set<string>(),
  }
 }
 
@@ -51,6 +53,7 @@ export function mergeAccountDeletionImpact(
  source.postLikeIds.forEach((id) => target.postLikeIds.add(id))
  source.postReplyIds.forEach((id) => target.postReplyIds.add(id))
  source.commentLikeIds.forEach((id) => target.commentLikeIds.add(id))
+ source.mediaUrls.forEach((url) => target.mediaUrls.add(url))
 }
 
 export async function findAuthUserIdsByEmail(admin: AdminClient, email: string) {
@@ -93,6 +96,10 @@ export async function collectAccountDeletionImpact(
  authoredPostsResult,
  likesResult,
  commentsResult,
+ listingsResult,
+ blogsResult,
+ communitiesResult,
+ profileResult
  ] = await Promise.all([
  admin
  .from('follows')
@@ -108,7 +115,7 @@ export async function collectAccountDeletionImpact(
  .eq('user_id', userId),
  admin
  .from('posts')
- .select('community_id')
+ .select('community_id, image_url, file_url')
  .eq('author_id', userId),
  admin
  .from('likes')
@@ -118,6 +125,23 @@ export async function collectAccountDeletionImpact(
  .from('comments')
  .select('blog_id, post_id')
  .eq('author_id', userId),
+ admin
+ .from('listings')
+ .select('images')
+ .eq('seller_id', userId),
+ admin
+ .from('blogs')
+ .select('images, cover_image')
+ .eq('author_id', userId),
+ admin
+ .from('communities')
+ .select('avatar_url, banner_url')
+ .eq('owner_id', userId),
+ admin
+ .from('profiles')
+ .select('avatar_url, cover_url')
+ .eq('id', userId)
+ .maybeSingle()
  ])
 
  if (followsResult.error) throw followsResult.error
@@ -126,6 +150,10 @@ export async function collectAccountDeletionImpact(
  if (authoredPostsResult.error) throw authoredPostsResult.error
  if (likesResult.error) throw likesResult.error
  if (commentsResult.error) throw commentsResult.error
+ if (listingsResult.error) throw listingsResult.error
+ if (blogsResult.error) throw blogsResult.error
+ if (communitiesResult.error) throw communitiesResult.error
+ if (profileResult.error) throw profileResult.error
 
  for (const row of (followsResult.data || []) as FollowRow[]) {
  const followerId = row.follower_id || null
@@ -142,8 +170,10 @@ export async function collectAccountDeletionImpact(
  addMaybe(impact.communityMemberIds, row.community_id || null)
  }
 
- for (const row of (authoredPostsResult.data || []) as CommunityRow[]) {
+ for (const row of (authoredPostsResult.data || []) as any[]) {
  addMaybe(impact.communityPostIds, row.community_id || null)
+ if (row.image_url) impact.mediaUrls.add(row.image_url)
+ if (row.file_url) impact.mediaUrls.add(row.file_url)
  }
 
  for (const row of (likesResult.data || []) as LikeRow[]) {
@@ -155,6 +185,23 @@ export async function collectAccountDeletionImpact(
  for (const row of (commentsResult.data || []) as CommentRow[]) {
  addMaybe(impact.blogCommentIds, row.blog_id || null)
  addMaybe(impact.postReplyIds, row.post_id || null)
+ }
+
+ // Collect Media URLs
+ for (const row of (listingsResult.data || []) as any[]) {
+ if (Array.isArray(row.images)) row.images.forEach((url: string) => impact.mediaUrls.add(url))
+ }
+ for (const row of (blogsResult.data || []) as any[]) {
+ if (Array.isArray(row.images)) row.images.forEach((url: string) => impact.mediaUrls.add(url))
+ if (row.cover_image) impact.mediaUrls.add(row.cover_image)
+ }
+ for (const row of (communitiesResult.data || []) as any[]) {
+ if (row.avatar_url) impact.mediaUrls.add(row.avatar_url)
+ if (row.banner_url) impact.mediaUrls.add(row.banner_url)
+ }
+ if (profileResult.data) {
+ if (profileResult.data.avatar_url) impact.mediaUrls.add(profileResult.data.avatar_url)
+ if (profileResult.data.cover_url) impact.mediaUrls.add(profileResult.data.cover_url)
  }
 
  return impact
@@ -415,7 +462,24 @@ export async function purgeAuthUsersWithCleanup(
  if (profileEmailDeleteError) throw profileEmailDeleteError
  }
 
- await repairAccountDeletionImpact(admin, impact)
+  await repairAccountDeletionImpact(admin, impact)
 
- return { deletedAuthUsers: uniqueIds.length }
+  // 4. Cloudinary & Storage Media Cleanup (Permanent)
+  const allMediaUrls = Array.from(impact.mediaUrls)
+  if (allMediaUrls.length > 0) {
+    const { deleteImagesByUrls } = await import('@/lib/cloudinary-server')
+    const { deleteSupabaseStorageUrls } = await import('@/lib/supabase/storage-cleanup') // I will create this
+    
+    const cloudinaryUrls = allMediaUrls.filter(url => url.includes('cloudinary.com'))
+    const supabaseUrls = allMediaUrls.filter(url => !url.includes('cloudinary.com'))
+
+    if (cloudinaryUrls.length > 0) {
+      await deleteImagesByUrls(cloudinaryUrls).catch(err => console.error('Cloudinary cleanup error during user purge:', err))
+    }
+    if (supabaseUrls.length > 0) {
+      await deleteSupabaseStorageUrls(admin, supabaseUrls).catch(err => console.error('Supabase storage cleanup error during user purge:', err))
+    }
+  }
+
+  return { deletedAuthUsers: uniqueIds.length }
 }

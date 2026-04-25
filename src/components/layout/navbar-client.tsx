@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ROUTES } from '@/lib/routes'
 import { parseSearchQuery } from '@/lib/search-ranking'
 import { cn } from '@/lib/utils'
+import { getOptimizedImageUrl } from '@/lib/cloudinary'
 import type { User } from '@supabase/supabase-js'
 
 /**
@@ -233,7 +234,7 @@ export default function NavbarClient({
  {/* Profile */}
  <Link href={ROUTES.dashboard.home()} className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-transparent hover:border-emerald-500/50 transition-all group shrink-0 shadow-lg shadow-black/5 active:scale-90 bg-slate-50">
  {profile?.avatar_url ? (
- <Image src={profile.avatar_url as string} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-125" alt="Avatar" width={44} height={44} />
+ <Image src={getOptimizedImageUrl(profile.avatar_url, 100, 100)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-125" alt="Avatar" width={44} height={44} />
  ) : (
  <div className="w-full h-full flex items-center justify-center font-black text-sm text-emerald-600 bg-emerald-50/50 uppercase">{(profile?.full_name as string || 'U').charAt(0)}</div>
  )}

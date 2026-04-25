@@ -4,6 +4,8 @@ import { blogSchema } from '@/lib/validations/blog'
 import { generateSlug } from '@/lib/utils'
 import { buildBlogExcerpt, sanitizeBlogHtml, stripHtmlToText } from '@/lib/security/blog-html'
 import { isAllowedBlogImageUrl } from '@/lib/security/media-urls'
+import { toTsQuery } from '@/lib/search-ranking'
+import { performModeration } from '@/lib/moderation'
 
 const PUBLIC_AUTHOR_SELECT = 'id, username, full_name, avatar_url'
 const BLOG_FEED_SELECT = `
@@ -62,7 +64,7 @@ export async function GET(request: Request) {
  query = query.eq('field', field)
  }
  if (q) {
- query = query.textSearch('search_vector', q, { config: 'english' })
+  query = query.textSearch('search_vector', toTsQuery(q), { config: 'english' })
  }
 
  // Cursor-based Pagination
@@ -176,10 +178,23 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: 'Blog content must be at least 50 characters after sanitization.' }, { status: 400 })
  }
 
- // 3. Generate slug
+ // 3. Moderation Check
+ let moderationStatus = 'pending'
+ let moderationReason = 'Awaiting review'
+
+ if (profile?.role === 'admin') {
+ moderationStatus = 'approved'
+ moderationReason = 'Admin bypass'
+ } else {
+ const modResult = await performModeration(title, stripHtmlToText(sanitizedContent))
+ moderationStatus = modResult.status
+ moderationReason = modResult.reason
+ }
+
+ // 4. Generate slug
  const slug = `${generateSlug(title)}-${Date.now().toString().slice(-4)}`
 
- // 4. Insert
+ // 5. Insert
  const { data, error } = await supabase
  .from('blogs')
  .insert({
@@ -193,10 +208,12 @@ export async function POST(request: Request) {
  tags,
  field,
  community_id,
- moderation: (profile as any)?.role === 'admin' ? 'approved' : 'pending',
+ moderation: moderationStatus,
+ moderation_reason: moderationReason,
  view_count: 0,
  like_count: 0,
- comment_count: 0, is_official: (profile as any)?.role === 'admin' ? is_official : false
+ comment_count: 0, 
+ is_official: (profile as any)?.role === 'admin' ? is_official : false
  })
  .select()
  .single()

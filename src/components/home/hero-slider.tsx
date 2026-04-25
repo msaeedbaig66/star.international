@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { getSafeHref } from '@/lib/security/url-security'
+import { getOptimizedImageUrl } from '@/lib/cloudinary'
 
 interface Banner {
  id: string
@@ -54,17 +55,18 @@ export function HeroSlider({ banners }: HeroSliderProps) {
  >
  {/* Main Background Image */}
  <div className="absolute inset-0">
- <Image
- src={banner.image_url}
- alt={banner.title || "Banner poster"}
- fill
- className={cn(
- "object-cover transition-opacity duration-700",
- isPoster ? "opacity-100" : "opacity-60"
- )}
- priority={idx === 0}
- sizes="100vw"
- />
+          <Image
+            src={getOptimizedImageUrl(banner.image_url, 1920, 600)}
+            alt={banner.title || "Banner poster"}
+            fill
+            className={cn(
+              "object-cover transition-opacity duration-700",
+              isPoster ? "opacity-100" : "opacity-60"
+            )}
+            priority={idx === 0}
+            sizes="100vw"
+            quality={90}
+          />
  {/* Cinematic Gradient Overlays - Only if not a poster */}
  {!isPoster && (
  <>

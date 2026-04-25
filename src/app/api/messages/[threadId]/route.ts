@@ -275,7 +275,10 @@ export async function DELETE(req: Request, { params }: { params: { threadId: str
  return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
  }
 
- if (messageId) {
+ if (!messageId) {
+ return NextResponse.json({ error: 'messageId is required for deletion' }, { status: 400 })
+ }
+
  // Delete single message
  const { data: message, error: messageError } = await supabase
  .from('messages')
@@ -300,17 +303,6 @@ export async function DELETE(req: Request, { params }: { params: { threadId: str
  .eq('id', messageId)
 
  if (deleteError) throw deleteError
- } else {
- // Clear entire chat (Delete all messages in thread)
- // Note: In a production app, you might want to mark them 
- // as deleted per user, but here we'll delete the records.
- const { error: deleteError } = await supabase
- .from('messages')
- .delete()
- .eq('thread_id', threadId)
-
- if (deleteError) throw deleteError
- }
 
  return NextResponse.json({ success: true })
  } catch (error: any) {
@@ -335,6 +327,18 @@ export async function PATCH(req: Request, { params }: { params: { threadId: stri
  const { messageId, emoji, action } = body
  if (!messageId || !emoji || !action) {
  return NextResponse.json({ error: 'Missing required fields: messageId, emoji, or action' }, { status: 400 })
+ }
+
+ // Verify participation in thread
+ const { data: participant, error: partError } = await supabase
+ .from('thread_participants')
+ .select('user_id')
+ .eq('thread_id', threadId)
+ .eq('user_id', user.id)
+ .single()
+
+ if (partError || !participant) {
+ return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
  }
 
  // Fetch current reactions

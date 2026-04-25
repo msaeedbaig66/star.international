@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
+// Edge runtime removed due to cookie() dependency in createClient
+// export const runtime = 'edge'
 
 const AUTH_ME_PROFILE_SELECT =
  'id, username, first_name, last_name, full_name, email, avatar_url, bio, university, field_of_study, city, role, is_verified, follower_count, following_count, listing_slot_limit, community_slot_limit, rating_avg, rating_count, phone, phone_number, sector_type_id, institution_id, department_id, created_at, updated_at'

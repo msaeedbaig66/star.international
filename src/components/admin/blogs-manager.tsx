@@ -20,6 +20,7 @@ interface Blog {
  cover_image: string;
  tags: string[];
  rejection_note?: string | null;
+ moderation_reason?: string | null;
  moderation: 'pending' | 'approved' | 'rejected';
  created_at: string;
  author: {
@@ -109,7 +110,7 @@ export function BlogsManager({ initialBlogs, stats }: BlogsManagerProps) {
  moderation: next.moderation || current?.moderation || 'rejected',
  rejection_note: next.rejection_note ?? current?.rejection_note ?? null,
  });
- toast.success(result?.already_deleted ? 'Already deleted. Undo is still available.' : 'Blog deleted. Undo available for 2 days.');
+ toast.success('Blog permanently deleted from database.');
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete blog');
  }
@@ -359,9 +360,9 @@ export function BlogsManager({ initialBlogs, stats }: BlogsManagerProps) {
  ) : (
  <button
  onClick={() => handleAdminDelete(selectedItem!.id)}
- className="px-10 py-4 bg-surface text-text-secondary rounded-xl font-bold text-sm hover:bg-border transition-all leading-none"
+ className="px-10 py-4 bg-surface text-destructive rounded-xl font-bold text-sm hover:bg-destructive/10 transition-all leading-none"
  >
- Delete (2d Undo)
+ Delete Permanently
  </button>
  )}
  </HydratedOnly>
@@ -386,6 +387,18 @@ export function BlogsManager({ initialBlogs, stats }: BlogsManagerProps) {
  <div className="text-xs font-bold text-text-primary mt-1"><SafeDate date={selectedItem.created_at} /></div>
  </div>
  </div>
+
+ {selectedItem.moderation_reason && (
+ <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100">
+ <div className="flex items-center gap-2 mb-2">
+ <span className="material-symbols-outlined text-amber-600 text-lg">psychology</span>
+ <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">AI Moderation Intelligence</p>
+ </div>
+ <p className="text-sm text-amber-900 font-medium leading-relaxed">
+ {selectedItem.moderation_reason}
+ </p>
+ </div>
+ )}
  </header>
 
  <div className="prose prose-slate max-w-none text-text-primary leading-relaxed space-y-6">

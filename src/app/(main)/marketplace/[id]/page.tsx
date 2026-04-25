@@ -12,6 +12,7 @@ import { FollowButton } from '@/components/shared/follow-button';
 import { getAdminVisibleMessage, isUndoWindowOpen, parseAdminActionNote } from '@/lib/admin-report-action';
 import { ViewTracker } from '@/components/shared/view-tracker';
 import { ROUTES } from '@/lib/routes';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { UserLink, CategoryBreadcrumb } from '@/components/shared/navigation-links';
 
 import type { Profile } from '@/types/database';
@@ -389,12 +390,12 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  {relatedItems.map((item: any) => (
  <Link key={item.id} href={ROUTES.marketplace.detail(item.id)} className="group flex gap-4 bg-surface-container-lowest p-3 rounded-lg hover:shadow-md transition-shadow cursor-pointer border border-border">
  <div className="relative w-24 h-24 rounded-md overflow-hidden flex-shrink-0">
- <Image 
- className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
- src={item.images?.[0] || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=200'} 
- alt={item.title}
- fill
- />
+  <Image 
+    className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+    src={getOptimizedImageUrl(item.images?.[0], 300, 300) || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=200'} 
+    alt={item.title}
+    fill
+  />
  </div>
  <div className="flex flex-col justify-center min-w-0">
  <h5 className="text-sm font-bold text-on-surface line-clamp-1">{item.title}</h5>

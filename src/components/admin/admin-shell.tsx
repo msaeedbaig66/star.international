@@ -24,6 +24,7 @@ interface AdminShellProps {
  slotRequests?: number;
  featureRequests?: number;
  orders?: number;
+ sourcingRequests?: number;
  };
 }
 

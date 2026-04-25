@@ -55,7 +55,7 @@ export default function TermsPage() {
  <div className='bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-12 flex items-center gap-3'>
  <span className='material-symbols-outlined text-emerald-600 text-xl flex-shrink-0' style={{ fontVariationSettings: "'FILL' 1" }}>gavel</span>
  <p className='text-emerald-800 font-medium text-sm'>
- By using Allpanga you agree to these terms. They&apos;re short and simple — please read them.
+ By using Allpanga, you agree to these terms. They&apos;re short and simple — please read them.
  </p>
  </div>
 

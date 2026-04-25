@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+// Edge runtime removed due to cookie() dependency in createClient
+// export const runtime = 'edge'
 
 const querySchema = z.object({
  sector_type_id: z.string().uuid().optional(),

@@ -9,6 +9,7 @@ import { ROUTES } from '@/lib/routes'
 import { formatTime } from '@/lib/utils'
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages'
 import { createPortal } from 'react-dom'
+import { getOptimizedImageUrl } from '@/lib/cloudinary'
 
 interface FloatingMessengerProps {
  userId: string
@@ -209,7 +210,7 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  className="w-full p-3 flex items-center gap-3 rounded-2xl hover:bg-emerald-50 transition-all text-left"
  >
  <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
- {u.avatar_url ? <Image src={u.avatar_url} alt="A" width={40} height={40} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs text-emerald-600 bg-slate-50">{(u.username || 'U').charAt(0).toUpperCase()}</div>}
+ {u.avatar_url ? <Image src={getOptimizedImageUrl(u.avatar_url, 80, 80)} alt="A" width={40} height={40} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs text-emerald-600 bg-slate-50">{(u.username || 'U').charAt(0).toUpperCase()}</div>}
  </div>
  <div>
  <div className="font-bold text-sm text-slate-900">{u.full_name || u.username}</div>
@@ -235,7 +236,7 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  >
  <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
  {/* eslint-disable-next-line @next/next/no-img-element */}
- {user?.avatar_url ? <img src={user.avatar_url} alt="A" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs text-sky-600 bg-slate-50">{(user?.username || 'U').charAt(0).toUpperCase()}</div>}
+ {user?.avatar_url ? <img src={getOptimizedImageUrl(user.avatar_url, 100, 100)} alt="A" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs text-sky-600 bg-slate-50">{(user?.username || 'U').charAt(0).toUpperCase()}</div>}
  </div>
  <div className="flex-1 min-w-0">
  <div className="flex justify-between items-baseline mb-0.5">
@@ -265,7 +266,7 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  </button>
  <div className="flex items-center gap-2 flex-1 min-w-0">
  <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden flex-shrink-0">
- {otherUser?.avatar_url ? <Image src={otherUser.avatar_url} alt="A" width={32} height={32} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-[10px] text-sky-600 bg-slate-50">{(otherUser?.username || 'U').charAt(0).toUpperCase()}</div>}
+ {otherUser?.avatar_url ? <Image src={getOptimizedImageUrl(otherUser.avatar_url, 80, 80)} alt="A" width={32} height={32} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-[10px] text-sky-600 bg-slate-50">{(otherUser?.username || 'U').charAt(0).toUpperCase()}</div>}
  </div>
  <div className="font-bold text-xs text-slate-900 truncate">{otherUser?.full_name || otherUser?.username}</div>
  </div>
@@ -277,7 +278,7 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
  <div className="flex flex-col items-center py-6">
  <div className="w-16 h-16 rounded-full border-2 border-slate-100 overflow-hidden mb-3">
- {otherUser?.avatar_url ? <Image src={otherUser.avatar_url} alt="A" width={64} height={64} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xl text-sky-600 bg-slate-50">{(otherUser?.username || 'U').charAt(0).toUpperCase()}</div>}
+ {otherUser?.avatar_url ? <Image src={getOptimizedImageUrl(otherUser.avatar_url, 160, 160)} alt="A" width={64} height={64} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-black text-xl text-sky-600 bg-slate-50">{(otherUser?.username || 'U').charAt(0).toUpperCase()}</div>}
  </div>
  <div className="font-black text-sm text-slate-900">{otherUser?.full_name || otherUser?.username}</div>
  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">@{otherUser?.username}</div>
@@ -295,7 +296,7 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  <div className="max-w-[85%] rounded-2xl overflow-hidden border border-slate-100 shadow-sm mb-1 bg-slate-50">
  {/* eslint-disable-next-line @next/next/no-img-element */}
  <img 
- src={m.attachment_url} 
+ src={getOptimizedImageUrl(m.attachment_url, 600)} 
  alt="Attachment" 
  className="max-w-full h-auto object-cover max-h-[300px] block"
  loading="lazy"

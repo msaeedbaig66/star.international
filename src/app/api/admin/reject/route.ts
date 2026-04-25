@@ -82,9 +82,6 @@ export async function POST(req: Request) {
  return NextResponse.json({ success: true });
  } catch (error: any) {
  console.error('Reject Error Details:', error);
- return NextResponse.json({ 
- error: 'Failed to process rejection',
- debug: error.message 
- }, { status: 500 });
+ return NextResponse.json({ error: 'Failed to process rejection' }, { status: 500 });
  }
 }

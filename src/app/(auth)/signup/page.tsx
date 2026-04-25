@@ -184,7 +184,7 @@ export default function SignupPage() {
  return setError('Please enter a valid phone number (e.g. +92300...)')
  }
  if (!formData.sectorTypeId) return setError('Please select a sector')
- if (!formData.institutionId) return setError('Please select an institute')
+ if (!formData.institutionId) return setError('Please select an institution')
  if (!formData.departmentId) return setError('Please select a department')
  if (formData.password.length < 8) return setError('Password must be at least 8 characters')
  if (!passwordsMatch) return setError('Passwords do not match')
@@ -416,7 +416,7 @@ export default function SignupPage() {
 
  <div className="flex flex-col gap-1.5">
  <label className="text-[10px] font-black uppercase tracking-wider text-slate-700">
- Institute Name <span className="text-primary">*</span>
+ Institution Name <span className="text-primary">*</span>
  </label>
  <select
  value={formData.institutionId}
@@ -437,7 +437,7 @@ export default function SignupPage() {
  ? 'Loading...'
  : institutions.length === 0
  ? 'No options'
- : 'Select institute'}
+ : 'Select institution'}
  </option>
  {institutions.map((item) => (
  <option key={item.id} value={item.id}>
@@ -459,7 +459,7 @@ export default function SignupPage() {
  >
  <option value="">
  {!formData.institutionId
- ? 'Select institute first'
+ ? 'Select institution first'
  : loadingDepts
  ? 'Loading...'
  : departments.length === 0

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { StatCard } from './stat-card';
 import { ApproveButton } from './approve-button';
 import { RejectModal } from './reject-modal';
+import { DetailPanel } from './detail-panel';
 import { BulkActionBar } from './bulk-action-bar';
 import { toast } from 'sonner';
 import { isSoftDeleteRecoverable, parseSoftDeleteNote } from '@/lib/content-soft-delete';
@@ -21,6 +22,7 @@ interface Listing {
  images: string[];
  status?: string;
  rejection_note?: string | null;
+ moderation_reason?: string | null;
  moderation: 'pending' | 'approved' | 'rejected';
  created_at: string;
  campus?: string;
@@ -52,6 +54,8 @@ export function ListingsManager({ initialListings, stats }: ListingsManagerProps
  const [selectedIds, setSelectedIds] = useState<string[]>([]);
  
  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+ const [selectedItem, setSelectedItem] = useState<Listing | null>(null);
+ const [isPanelOpen, setIsPanelOpen] = useState(false);
  const [itemToReject, setItemToReject] = useState<string | null>(null);
  const [loading, setLoading] = useState(false);
  const [currentPage, setCurrentPage] = useState(1);
@@ -139,7 +143,7 @@ export function ListingsManager({ initialListings, stats }: ListingsManagerProps
  moderation: next.moderation || current?.moderation || 'rejected',
  rejection_note: next.rejection_note ?? current?.rejection_note ?? null,
  });
- toast.success(result?.already_deleted ? 'Already deleted. Undo is still available.' : 'Listing deleted. Undo available for 2 days.');
+ toast.success('Listing permanently deleted from database.');
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete listing');
  }
@@ -285,9 +289,10 @@ export function ListingsManager({ initialListings, stats }: ListingsManagerProps
  <tr
  key={item.id}
  className={cn(
- "transition-colors group",
+ "transition-colors group cursor-pointer hover:bg-primary/[0.02]",
  selectedIds.includes(item.id) && "bg-primary/[0.05]"
  )}
+ onClick={() => { setSelectedItem(item); setIsPanelOpen(true); }}
  >
  <td className="p-4 pl-6" onClick={(e) => e.stopPropagation()}>
  <input 
@@ -476,6 +481,104 @@ export function ListingsManager({ initialListings, stats }: ListingsManagerProps
  onClear={() => setSelectedIds([])}
  />
 
+ {/* Detail Panel */}
+ <DetailPanel
+ isOpen={isPanelOpen}
+ onClose={() => setIsPanelOpen(false)}
+ title="Listing Validation"
+ width="w-[550px]"
+ footer={(
+ <div className="flex gap-4">
+ {selectedItem?.status !== 'removed' && (
+ <>
+ <ApproveButton 
+ id={selectedItem?.id || ''} 
+ type="listing" 
+ variant="full" 
+ label="Approve Listing"
+ className="flex-1"
+ onSuccess={() => { updateModerationLocally(selectedItem!.id, 'approved'); setIsPanelOpen(false); }}
+ />
+ <button 
+ onClick={() => { setItemToReject(selectedItem?.id || ''); setIsRejectModalOpen(true); }}
+ className="px-8 py-4 bg-destructive/10 text-destructive rounded-xl font-bold text-sm hover:bg-destructive/20 transition-all leading-none"
+ >
+ Reject
+ </button>
+ </>
+ )}
+ <HydratedOnly>
+ {selectedItem?.status === 'removed' ? (
+ <button
+ onClick={() => handleAdminRecover(selectedItem!.id)}
+ className="px-8 py-4 bg-primary/10 text-primary rounded-xl font-bold text-sm hover:bg-primary/20 transition-all leading-none"
+ >
+ Undo Delete
+ </button>
+ ) : (
+ <button
+ onClick={() => handleAdminDelete(selectedItem!.id)}
+ className="px-8 py-4 bg-surface text-destructive rounded-xl font-bold text-sm hover:bg-destructive/10 transition-all leading-none"
+ >
+ Delete Permanently
+ </button>
+ )}
+ </HydratedOnly>
+ </div>
+ )}
+ >
+ {selectedItem && (
+ <div className="space-y-8">
+ <div className="relative aspect-video rounded-3xl overflow-hidden border border-border group">
+ <Image src={selectedItem.images?.[0] || 'https://images.unsplash.com/photo-1544256718-3bcf237f3974?w=800&q=80'} fill className="object-cover" alt="" />
+ <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-primary">
+ {selectedItem.category}
+ </div>
+ </div>
+
+ {/* Moderation Intel */}
+ {selectedItem.moderation_reason && (
+ <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100">
+ <div className="flex items-center gap-2 mb-2">
+ <span className="material-symbols-outlined text-amber-600 text-lg">psychology</span>
+ <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">AI Moderation Intelligence</p>
+ </div>
+ <p className="text-sm text-amber-900 font-medium leading-relaxed">
+ {selectedItem.moderation_reason}
+ </p>
+ </div>
+ )}
+
+ <div className="space-y-2">
+ <h1 className="text-2xl font-black text-text-primary tracking-tight">{selectedItem.title}</h1>
+ <p className="text-2xl font-black text-primary">{formatPrice(selectedItem.price)}</p>
+ </div>
+
+ <div className="space-y-3">
+ <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Item Description</p>
+ <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+ {selectedItem.description}
+ </p>
+ </div>
+
+ <div className="p-6 bg-surface rounded-2xl border border-border flex items-center justify-between">
+ <div className="flex items-center gap-3">
+ <Image src={selectedItem.seller?.avatar_url || '/images/default-avatar.svg'} width={40} height={40} className="w-10 h-10 rounded-full" alt="" />
+ <div>
+ <p className="text-[10px] font-black text-text-muted uppercase">Seller</p>
+ <p className="font-bold text-text-primary">{selectedItem.seller?.full_name}</p>
+ <p className="text-xs text-text-secondary">{selectedItem.seller?.university}</p>
+ </div>
+ </div>
+ <div className="text-right">
+ <p className="text-[10px] font-black text-text-muted uppercase">Listed On</p>
+ <p className="text-xs font-bold text-text-primary mt-1"><SafeTime date={selectedItem.created_at} /></p>
+ </div>
+ </div>
+ </div>
+ )}
+ </DetailPanel>
+
  {/* Reject Modal */}
  <RejectModal
  isOpen={isRejectModalOpen}
@@ -484,10 +587,10 @@ export function ListingsManager({ initialListings, stats }: ListingsManagerProps
  type="listing"
  onSuccess={() => {
  if (itemToReject) updateModerationLocally(itemToReject, 'rejected');
+ if (itemToReject === selectedItem?.id) setIsPanelOpen(false);
  setIsRejectModalOpen(false);
  }}
  />
  </div>
  );
 }
-

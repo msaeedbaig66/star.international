@@ -16,24 +16,31 @@ export async function POST(req: Request) {
  sessionCookieMode: shouldRemember ? 'persistent' : 'session',
  })
  
- const { data, error } = await supabase.auth.signInWithPassword({ email, password })
- if (error) {
- const message = error.message || 'Login failed'
- const lowered = message.toLowerCase()
- if (lowered.includes('email not confirmed') || lowered.includes('email_not_confirmed')) {
- return NextResponse.json(
- {
- data: null,
- error: {
- code: 'EMAIL_NOT_CONFIRMED',
- message: 'Please verify your email before logging in.',
- },
- },
- { status: 401 }
- )
- }
- return NextResponse.json({ data: null, error: { message: error.message } }, { status: 401 })
- }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      const message = error.message || 'Login failed'
+      const lowered = message.toLowerCase()
+      
+      // Keep email confirmation as it's a helpful flow, but genericize everything else
+      if (lowered.includes('email not confirmed') || lowered.includes('email_not_confirmed')) {
+        return NextResponse.json(
+          {
+            data: null,
+            error: {
+              code: 'EMAIL_NOT_CONFIRMED',
+              message: 'Please verify your email before logging in.',
+            },
+          },
+          { status: 401 }
+        )
+      }
+      
+      // Security: Generic error message prevents hackers from knowing if an email exists
+      return NextResponse.json(
+        { data: null, error: { message: 'Invalid email or password. Please try again.' } }, 
+        { status: 401 }
+      )
+    }
 
  const { data: profile } = await supabase
  .from('profiles')

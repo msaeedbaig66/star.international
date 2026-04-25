@@ -23,6 +23,7 @@ interface Community {
  banner_url: string;
  is_official: boolean;
  rejection_note?: string | null;
+ moderation_reason?: string | null;
  moderation: 'pending' | 'approved' | 'rejected';
  created_at: string;
  owner?: {
@@ -142,7 +143,7 @@ export function CommunitiesManager({ initialCommunities, stats }: CommunitiesMan
  moderation: next.moderation || current?.moderation || 'rejected',
  rejection_note: next.rejection_note ?? current?.rejection_note ?? null,
  });
- toast.success(result?.already_deleted ? 'Already deleted. Undo is still available.' : 'Community deleted. Undo available for 2 days.');
+ toast.success('Community permanently deleted from database.');
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete community');
  }
@@ -465,7 +466,8 @@ export function CommunitiesManager({ initialCommunities, stats }: CommunitiesMan
  return (
  <tr 
  key={item.id} 
- className="hover:bg-primary/[0.01] transition-colors"
+ className="hover:bg-primary/[0.01] transition-colors cursor-pointer group"
+ onClick={() => { setSelectedItem(item); setIsPanelOpen(true); }}
  >
  <td className="p-5 pl-8">
  <div className="flex items-center gap-4">
@@ -565,6 +567,110 @@ export function CommunitiesManager({ initialCommunities, stats }: CommunitiesMan
  </div>
  </div>
 
+  {/* Detail Panel */}
+  <DetailPanel
+  isOpen={isPanelOpen}
+  onClose={() => setIsPanelOpen(false)}
+  title="Community Validation"
+  width="w-[600px]"
+  footer={(
+  <div className="flex gap-4">
+  {!selectedDeleteMeta && (
+  <>
+  <ApproveButton 
+  id={selectedItem?.id || ''} 
+  type="community" 
+  variant="full" 
+  label="Approve Community"
+  className="flex-1"
+  onSuccess={() => { updateModerationLocally(selectedItem!.id, 'approved'); setIsPanelOpen(false); }}
+  />
+  <button 
+  onClick={() => { setItemToReject(selectedItem?.id || ''); setIsRejectModalOpen(true); }}
+  className="px-8 py-4 bg-destructive/10 text-destructive rounded-xl font-bold text-sm hover:bg-destructive/20 transition-all leading-none"
+  >
+  Reject
+  </button>
+  </>
+  )}
+  <HydratedOnly>
+  {selectedDeleteMeta ? (
+  <button
+  onClick={() => handleAdminRecover(selectedItem!.id)}
+  className="px-8 py-4 bg-primary/10 text-primary rounded-xl font-bold text-sm hover:bg-primary/20 transition-all leading-none"
+  >
+  Undo Delete
+  </button>
+  ) : (
+  <button
+  onClick={() => handleAdminDelete(selectedItem!.id)}
+  className="px-8 py-4 bg-surface text-destructive rounded-xl font-bold text-sm hover:bg-destructive/10 transition-all leading-none"
+  >
+  Delete Permanently
+  </button>
+  )}
+  </HydratedOnly>
+  </div>
+  )}
+  >
+  {selectedItem && (
+  <div className="space-y-8">
+  <div className="relative aspect-[3/1] rounded-2xl overflow-hidden border border-border">
+  <Image src={selectedItem.banner_url || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80'} fill className="object-cover" alt="" />
+  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+  <div className="absolute bottom-4 left-4 flex items-center gap-4">
+  <Image src={selectedItem.avatar_url || '/images/default-avatar.svg'} width={64} height={64} className="w-16 h-16 rounded-2xl border-4 border-white shadow-lg object-cover" alt="" />
+  <div className="text-white">
+  <h1 className="text-2xl font-black leading-none">{selectedItem.name}</h1>
+  <p className="text-sm font-bold opacity-80 mt-1">/c/{selectedItem.slug}</p>
+  </div>
+  </div>
+  </div>
+
+  {/* Moderation Intel */}
+  {selectedItem.moderation_reason && (
+  <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100">
+  <div className="flex items-center gap-2 mb-2">
+  <span className="material-symbols-outlined text-amber-600 text-lg">psychology</span>
+  <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">AI Moderation Intelligence</p>
+  </div>
+  <p className="text-sm text-amber-900 font-medium leading-relaxed">
+  {selectedItem.moderation_reason}
+  </p>
+  </div>
+  )}
+
+  <div className="grid grid-cols-2 gap-4">
+  <div className="p-4 bg-surface rounded-2xl border border-border">
+  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Type</p>
+  <p className="text-sm font-bold text-text-primary mt-1 capitalize">{selectedItem.type} Space</p>
+  </div>
+  <div className="p-4 bg-surface rounded-2xl border border-border">
+  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Field</p>
+  <p className="text-sm font-bold text-text-primary mt-1">{selectedItem.field || 'General'}</p>
+  </div>
+  </div>
+
+  <div className="space-y-3">
+  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">About Community</p>
+  <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+  {selectedItem.description}
+  </p>
+  </div>
+
+  <div className="p-6 bg-surface rounded-2xl border border-border">
+  <div className="flex items-center gap-3">
+  <Image src={selectedItem.owner?.avatar_url || '/images/default-avatar.svg'} width={40} height={40} className="w-10 h-10 rounded-full" alt="" />
+  <div>
+  <p className="text-[10px] font-black text-text-muted uppercase">Initiated By</p>
+  <p className="font-bold text-text-primary">{selectedItem.owner?.full_name}</p>
+  <p className="text-xs text-text-secondary">{selectedItem.owner?.university}</p>
+  </div>
+  </div>
+  </div>
+  </div>
+  )}
+  </DetailPanel>
 
 
 

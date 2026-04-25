@@ -683,7 +683,7 @@ export function CommunityIssuesFeed({
  <div className="mt-4 md:mt-6 flex flex-wrap gap-3 md:gap-4">
  {post.image_url && (
  <div className="relative w-full max-w-sm aspect-video rounded-2xl md:rounded-3xl overflow-hidden border border-border shadow-md">
- <Image src={getOptimizedImageUrl(post.image_url, 800, 450)} alt="Post image" fill className="object-cover" unoptimized />
+ <Image src={getOptimizedImageUrl(post.image_url, 800, 450)} alt="Post image" fill className="object-cover" />
  </div>
  )}
  {post.file_url && (

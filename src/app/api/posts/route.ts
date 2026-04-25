@@ -165,7 +165,13 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: 'Validation failed', details: result.error.format() }, { status: 400 })
  }
 
- const { community_id, title, content, is_question, is_anonymous, image_url, file_url } = result.data
+ // Destructure raw data
+ const { community_id, title: rawTitle, content: rawContent, is_question, is_anonymous, image_url, file_url } = result.data
+ 
+ // Apply HTML escaping for security
+ const { escapeHtml } = await import('@/lib/utils/html-escape')
+ const title = escapeHtml(rawTitle)
+ const content = escapeHtml(rawContent)
 
  if (image_url && !isAllowedPostImageUrl(image_url, user.id)) {
  return NextResponse.json({ error: 'Post image must use an approved uploaded media URL.' }, { status: 400 })

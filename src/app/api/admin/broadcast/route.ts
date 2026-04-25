@@ -63,7 +63,7 @@ export async function GET() {
  .eq('type', 'message')
  .ilike('message', '[BROADCAST]%')
  .order('created_at', { ascending: false })
- .limit(5000),
+ .limit(200),
  ])
 
  const grouped = new Map<string, { message: string; created_at: string; delivered: number }>()

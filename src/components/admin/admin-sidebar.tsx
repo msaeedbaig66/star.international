@@ -19,6 +19,7 @@ interface SidebarProps {
  slotRequests?: number;
  featureRequests?: number;
  orders?: number;
+ sourcingRequests?: number;
  };
  isCollapsed?: boolean;
 }
@@ -46,6 +47,7 @@ export function AdminSidebar({ counts, isCollapsed }: SidebarProps) {
  { label: 'Feature Requests', href: '/admin/feature-requests', icon: 'workspace_premium', badge: counts?.featureRequests },
  { label: 'Support Inbox', href: '/admin/support-requests', icon: 'support_agent', badge: counts?.support },
  { label: 'Broadcasts', href: '/admin/broadcasts', icon: 'campaign' },
+ { label: 'Sourcing Requests', href: '/admin/sourcing-requests', icon: 'local_shipping', badge: counts?.sourcingRequests },
  { label: 'Marketplace Orders', href: '/admin/orders', icon: 'shopping_bag', badge: counts?.orders },
  ];
 

@@ -51,19 +51,18 @@ export default async function RootLayout({ children }: { children:React.ReactNod
  }}
  />
 
- <link rel="preconnect" href="https://fonts.googleapis.com" />
- <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
- {/* Material Symbols: preload the stylesheet for faster icon rendering */}
- <link
- rel="preload"
- href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
- as="style"
- />
- {/* eslint-disable-next-line @next/next/no-page-custom-font */}
- <link
- href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
- rel="stylesheet"
- />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+    {/* Material Symbols: CRITICAL PRELOAD for 100% performance (eliminates layout shift/flicker) */}
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      as="style"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      rel="stylesheet"
+    />
  {/* ── Performance: DNS prefetch for Supabase ── */}
  {(() => {
  try {

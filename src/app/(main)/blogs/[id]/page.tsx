@@ -12,6 +12,7 @@ import { BlogSidebarEngagement } from '@/components/blogs/blog-sidebar-engagemen
 import { ViewTracker } from '@/components/shared/view-tracker';
 import { InteractionCounter } from '@/components/shared/interaction-counter';
 import { ROUTES } from '@/lib/routes';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 import { UserLink, CategoryBreadcrumb, TagLink } from '@/components/shared/navigation-links';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
@@ -215,7 +216,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
           <Image
             alt={blog.title}
             className="w-full h-full object-cover"
-            src={blog.cover_image || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=1200'}
+            src={getOptimizedImageUrl(blog.cover_image, 1200, 600) || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=1200'}
             fill
             priority
             sizes="100vw"
@@ -398,7 +399,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
                             <Image
                               alt={related.title}
                               className="w-full h-24 object-cover rounded-lg"
-                              src={related.cover_image || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=300'}
+                              src={getOptimizedImageUrl(related.cover_image, 400, 300) || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=300'}
                               fill
                               sizes="320px"
                             />

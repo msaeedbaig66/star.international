@@ -1,4 +1,5 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import {
  findAuthUserIdsByEmail,
@@ -14,7 +15,7 @@ export async function POST() {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }
 
- const admin = await createAdminClient()
+ const admin = createAdminClient()
  const idsToDelete = new Set<string>([user.id])
 
  // Find other instances of this email (e.g. if multiple providers used)

@@ -6,6 +6,7 @@ import {
  rankSearchResults,
  scoreSearchDocument,
  toSafeLikeTerm,
+ toTsQuery,
 } from '@/lib/search-ranking'
 
 import { cacheService } from '@/lib/cache-service'
@@ -51,8 +52,9 @@ export async function GET(req: Request) {
  .eq('moderation', 'approved')
  .eq('status', 'available')
  .limit(SEARCH_FETCH_LIMIT)
- const orFilter = buildSearchOrFilter(['title', 'description', 'category', 'campus', 'condition'], searchTerms)
- if (orFilter) query = query.or(orFilter)
+ if (parsed.cleanQuery) {
+  query = query.textSearch('search_vector', toTsQuery(parsed.cleanQuery), { config: 'english' })
+ }
  if (parsed.operators.category) query = query.ilike('category', `%${toSafeLikeTerm(parsed.operators.category)}%`)
  if (parsed.operators.campus) query = query.ilike('campus', `%${toSafeLikeTerm(parsed.operators.campus)}%`)
  if (parsed.operators.minPrice !== undefined) query = query.gte('price', parsed.operators.minPrice)
@@ -67,8 +69,9 @@ export async function GET(req: Request) {
  .select('id,title,excerpt,cover_image,field,tags,like_count,view_count,created_at')
  .eq('moderation', 'approved')
  .limit(SEARCH_FETCH_LIMIT)
- const orFilter = buildSearchOrFilter(['title', 'excerpt', 'field'], searchTerms)
- if (orFilter) query = query.or(orFilter)
+ if (parsed.cleanQuery) {
+  query = query.textSearch('search_vector', toTsQuery(parsed.cleanQuery), { config: 'english' })
+ }
  if (parsed.operators.field) query = query.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
  return query
  })()
@@ -80,25 +83,25 @@ export async function GET(req: Request) {
  .select('id,name,description,field,member_count,avatar_url,created_at')
  .eq('moderation', 'approved')
  .limit(SEARCH_FETCH_LIMIT)
- const orFilter = buildSearchOrFilter(['name', 'description', 'field'], searchTerms)
- if (orFilter) query = query.or(orFilter)
+ if (parsed.cleanQuery) {
+  query = query.textSearch('search_vector', toTsQuery(parsed.cleanQuery), { config: 'english' })
+ }
  if (parsed.operators.field) query = query.ilike('field', `%${toSafeLikeTerm(parsed.operators.field)}%`)
  return query
  })()
 
  const usersPromise = (async () => {
- if (!shouldFetch.users) return { data: [] as any[] }
- const userTerms = parsed.operators.field
- ? [...searchTerms, toSafeLikeTerm(parsed.operators.field)]
- : searchTerms
- let query = supabase
- .from('profiles')
- .select('id,username,full_name,avatar_url,university,field_of_study,follower_count,rating_avg,rating_count,created_at')
- .eq('is_verified', true)
- .limit(SEARCH_FETCH_LIMIT)
- const orFilter = buildSearchOrFilter(['username', 'full_name', 'university', 'field_of_study'], userTerms)
- if (orFilter) query = query.or(orFilter)
- return query
+  if (!shouldFetch.users) return { data: [] as any[] }
+  let query = supabase
+   .from('profiles')
+   .select('id,username,full_name,avatar_url,university,field_of_study,follower_count,rating_avg,rating_count,created_at')
+   .eq('is_verified', true)
+   .limit(SEARCH_FETCH_LIMIT)
+
+  if (parsed.cleanQuery) {
+   query = query.textSearch('search_vector', toTsQuery(parsed.cleanQuery), { config: 'english' })
+  }
+  return query
  })()
 
  const [listingsRes, blogsRes, communitiesRes, usersRes] = await Promise.all([

@@ -113,110 +113,165 @@ export function useRealtimeMessages(threadId: string | null) {
  }
  }, [hasMore, loadingOlder, messages, threadId])
 
- useEffect(() => {
- let channel: RealtimeChannel | null = null;
- let isMounted = true;
+  useEffect(() => {
+    let channel: RealtimeChannel | null = null;
+    let isMounted = true;
+    let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
- fetchInitialMessages()
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    };
 
- if (threadId) {
- channel = supabase.channel(`thread:${threadId}`, {
- config: {
- broadcast: { self: false }
- }
- })
- 
- channelRef.current = channel
+    const startPolling = () => {
+      if (pollingInterval) return;
+      console.log('[Realtime] Falling back to polling for thread:', threadId);
+      pollingInterval = setInterval(() => {
+        if (isMounted && threadId) {
+          fetchInitialMessages();
+        }
+      }, 10000); // Poll every 10s as a fallback
+    };
 
- channel
- .on(
- 'postgres_changes',
- { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
- async (payload) => {
- const newMessagePayload = payload.new as Message;
- if (!newMessagePayload?.id || messageIdsRef.current.has(newMessagePayload.id)) {
- return
- }
- 
- const { data } = await supabase
- .from('messages')
- .select(`
- id, thread_id, sender_id, content, attachment_url, parent_id, reactions,
- created_at, updated_at, is_read, 
- sender:profiles(username, avatar_url, full_name),
- parent:messages(id, content, sender:profiles(username, full_name))
- `)
- .eq('id', newMessagePayload.id)
- .single()
- 
- if (isMounted && data) {
- const normalizedMessage: Message = {
- ...(data as any),
- sender: Array.isArray(data.sender) ? (data.sender[0] ?? null) : (data.sender ?? null),
- }
- setMessages((prev) => {
- if (prev.find(m => m.id === normalizedMessage.id)) return prev;
- return [...prev, normalizedMessage];
- })
- }
- }
- )
- .on(
- 'postgres_changes',
- { event: 'UPDATE', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
- async (payload) => {
- const updated = payload.new as Message;
- const { data } = await supabase
- .from('messages')
- .select(`
- id, thread_id, sender_id, content, attachment_url, parent_id, reactions,
- created_at, updated_at, is_read, 
- sender:profiles(username, avatar_url, full_name),
- parent:messages(id, content, sender:profiles(username, full_name))
- `)
- .eq('id', updated.id)
- .single()
+    const connect = () => {
+      if (!threadId || !isMounted || typeof document === 'undefined' || document.visibilityState === 'hidden') return;
 
- if (isMounted && data) {
- const normalized: Message = {
- ...(data as any),
- sender: Array.isArray(data.sender) ? (data.sender[0] ?? null) : (data.sender ?? null),
- }
- setMessages((prev) => prev.map(m => m.id === normalized.id ? normalized : m))
- }
- }
- )
- .on(
- 'postgres_changes',
- { event: 'DELETE', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
- (payload) => {
- const deletedId = (payload.old as any)?.id;
- if (isMounted && deletedId) {
- setMessages((prev) => prev.filter(m => m.id !== deletedId));
- }
- }
- )
- .on(
- 'broadcast',
- { event: 'reaction' },
- ({ payload }) => {
- if (isMounted) {
- setMessages((prev) => 
- prev.map(m => m.id === payload.messageId ? { ...m, reactions: payload.reactions } : m)
- )
- }
- }
- )
- .subscribe()
- }
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
 
- return () => {
- isMounted = false;
- if (channel) {
- supabase.removeChannel(channel)
- }
- }
- }, [fetchInitialMessages, supabase, threadId])
+      channel = supabase.channel(`thread:${threadId}`, {
+        config: {
+          broadcast: { self: false }
+        }
+      });
+      
+      channelRef.current = channel;
+
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
+          async (payload) => {
+            const newMessagePayload = payload.new as Message;
+            if (!newMessagePayload?.id || messageIdsRef.current.has(newMessagePayload.id)) {
+              return;
+            }
+            
+            const { data } = await supabase
+              .from('messages')
+              .select(`
+                id, thread_id, sender_id, content, attachment_url, parent_id, reactions,
+                created_at, updated_at, is_read, 
+                sender:profiles(username, avatar_url, full_name),
+                parent:messages(id, content, sender:profiles(username, full_name))
+              `)
+              .eq('id', newMessagePayload.id)
+              .single();
+            
+            if (isMounted && data) {
+              const normalizedMessage: Message = {
+                ...(data as any),
+                sender: Array.isArray(data.sender) ? (data.sender[0] ?? null) : (data.sender ?? null),
+              };
+              setMessages((prev) => {
+                if (prev.find(m => m.id === normalizedMessage.id)) return prev;
+                return [...prev, normalizedMessage];
+              });
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
+          async (payload) => {
+            const updated = payload.new as Message;
+            const { data } = await supabase
+              .from('messages')
+              .select(`
+                id, thread_id, sender_id, content, attachment_url, parent_id, reactions,
+                created_at, updated_at, is_read, 
+                sender:profiles(username, avatar_url, full_name),
+                parent:messages(id, content, sender:profiles(username, full_name))
+              `)
+              .eq('id', updated.id)
+              .single();
+
+            if (isMounted && data) {
+              const normalized: Message = {
+                ...(data as any),
+                sender: Array.isArray(data.sender) ? (data.sender[0] ?? null) : (data.sender ?? null),
+              };
+              setMessages((prev) => prev.map(m => m.id === normalized.id ? normalized : m));
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
+          (payload) => {
+            const deletedId = (payload.old as any)?.id;
+            if (isMounted && deletedId) {
+              setMessages((prev) => prev.filter(m => m.id !== deletedId));
+            }
+          }
+        )
+        .on(
+          'broadcast',
+          { event: 'reaction' },
+          ({ payload }) => {
+            if (isMounted) {
+              setMessages((prev) => 
+                prev.map(m => m.id === payload.messageId ? { ...m, reactions: payload.reactions } : m)
+              );
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            stopPolling();
+          } else if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+            startPolling();
+          }
+        });
+    };
+
+    const disconnect = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+        channelRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchInitialMessages();
+        connect();
+      } else {
+        disconnect();
+        stopPolling();
+      }
+    };
+
+    fetchInitialMessages();
+    connect();
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      isMounted = false;
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+      disconnect();
+      stopPolling();
+    };
+  }, [fetchInitialMessages, supabase, threadId]);
 
  const addMessage = useCallback((message: Message) => {
  setMessages((prev) => {

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { listingSchema } from '@/lib/validations/listing'
 import { isAllowedListingImageUrl } from '@/lib/security/media-urls'
+import { toTsQuery } from '@/lib/search-ranking'
+import { performModeration } from '@/lib/moderation'
 
 const ADVANCED_LISTING_COLUMNS = ['listing_type', 'rental_price', 'rental_period', 'rental_deposit', 'contact_preference'] as const
 const LISTING_FEED_SELECT = `
@@ -85,7 +87,7 @@ export async function GET(request: Request) {
  if (maxPrice !== null) query = query.lte('price', maxPrice)
 
  if (q) {
- query = query.textSearch('search_vector', q, { config: 'english' })
+  query = query.textSearch('search_vector', toTsQuery(q), { config: 'english' })
  }
 
  if (cursor) {
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
  const listingUsage = usageRes.count
  const userRole = profile?.role || 'user'
  const isAdmin = userRole === 'admin'
- const isPrivileged = isAdmin || userRole === 'subadmin'
+ const isPrivileged = isAdmin || userRole === 'moderator'
 
  const listingLimit = Number((profile as any)?.listing_slot_limit || 5)
  if ((listingUsage || 0) >= listingLimit && !isPrivileged) {
@@ -173,8 +175,18 @@ export async function POST(request: Request) {
 
  const finalIsOfficial = is_official && isPrivileged
 
- // Only full Admins get auto-approval. Sub-admins must have their "Official" posts approved.
- const autoApprove = isAdmin
+  // Moderation Check
+  let moderationStatus = 'pending'
+  let moderationReason = 'Awaiting review'
+
+  if (isAdmin) {
+  moderationStatus = 'approved'
+  moderationReason = 'Admin bypass'
+  } else {
+  const modResult = await performModeration(title, description || '')
+  moderationStatus = modResult.status
+  moderationReason = modResult.reason
+  }
 
  const payload = {
  seller_id: user.id,
@@ -190,7 +202,8 @@ export async function POST(request: Request) {
  rental_period: rental_period ?? null,
  rental_deposit: rental_deposit ?? null,
  contact_preference,
- moderation: autoApprove ? 'approved' : 'pending',
+ moderation: moderationStatus,
+ moderation_reason: moderationReason,
  is_official: finalIsOfficial,
  view_count: 0,
  status: 'available',
