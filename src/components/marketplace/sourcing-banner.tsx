@@ -25,8 +25,9 @@ export function SourcingBanner() {
       })
 
       const result = await res.json()
-
-      if (!res.ok) throw new Error(result.error || 'Submission failed')
+      if (!res.ok) {
+        throw new Error(result.details ? `${result.error}: ${result.details}` : (result.error || 'Submission failed'))
+      }
 
       toast.success('Request Submitted Successfully!', {
         description: "Our team will check Lahore, Karachi, and China markets and get back to you soon.",
