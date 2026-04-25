@@ -75,6 +75,7 @@ export default async function AdminLayout({
   }
 
   // 3. Fetch pending counts for Sidebar
+  const adminClient = await import('@/lib/supabase/admin').then(m => m.createAdminClient());
   const [
     listingsRes,
     blogsRes,
@@ -87,16 +88,16 @@ export default async function AdminLayout({
     ordersRes,
     sourcingRes,
   ] = await Promise.all([
-    supabase.from('listings').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
-    supabase.from('blogs').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
-    supabase.from('communities').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
-    supabase.from('comments').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
-    supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-    supabase.from('slot_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('feature_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('support_requests').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('sourcing_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    adminClient.from('listings').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
+    adminClient.from('blogs').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
+    adminClient.from('communities').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
+    adminClient.from('comments').select('id', { count: 'exact', head: true }).eq('moderation', 'pending'),
+    adminClient.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    adminClient.from('slot_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    adminClient.from('feature_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    adminClient.from('support_requests').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    adminClient.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    adminClient.from('sourcing_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
 
   const counts = {

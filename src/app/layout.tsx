@@ -34,10 +34,12 @@ import { GlobalNotificationListener } from '@/components/shared/global-notificat
 export default async function RootLayout({ children }: { children:React.ReactNode }) {
  const nonce = headers().get('x-nonce') ?? undefined
 
- return (
- <html lang='en' className={inter.variable}>
- <head>
+  return (
+  <html lang='en' className={inter.variable} suppressHydrationWarning>
+  <head>
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{
           __html: `
             (function() {
