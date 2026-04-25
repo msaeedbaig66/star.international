@@ -128,56 +128,65 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
- try {
- const adminGuard = await requireAdmin()
- if ('error' in adminGuard) return adminGuard.error
+  try {
+    const adminGuard = await requireAdmin()
+    if ('error' in adminGuard) return adminGuard.error
 
- const parsedParams = paramsSchema.safeParse(params)
- if (!parsedParams.success) {
- return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
- }
+    const parsedParams = paramsSchema.safeParse(params)
+    if (!parsedParams.success) {
+      return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
+    }
 
- const body = await req.json()
- const parsedBody = patchBodySchema.safeParse(body)
- if (!parsedBody.success) {
- return NextResponse.json({ error: 'Validation failed', details: parsedBody.error.format() }, { status: 400 })
- }
+    const body = await req.json().catch(() => ({}))
+    const parsedBody = patchBodySchema.safeParse(body)
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: 'Validation failed', details: parsedBody.error.format() }, { status: 400 })
+    }
 
- const { is_banned, ban_reason, role } = parsedBody.data
+    const { is_banned, ban_reason, role } = parsedBody.data
 
- if (adminGuard.user.id === parsedParams.data.id) {
- if (is_banned === true) return NextResponse.json({ error: 'You cannot ban yourself' }, { status: 400 })
- if (role && role !== 'admin') return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
- }
+    if (adminGuard.user.id === parsedParams.data.id) {
+      if (is_banned === true) return NextResponse.json({ error: 'You cannot ban yourself' }, { status: 400 })
+      if (role && role !== 'admin') return NextResponse.json({ error: 'You cannot demote yourself' }, { status: 400 })
+    }
 
- const admin = createAdminClient()
- const updateData: any = {}
- 
- if (is_banned !== undefined) {
- updateData.is_banned = is_banned
- updateData.ban_reason = is_banned ? ban_reason : null
- updateData.banned_at = is_banned ? new Date().toISOString() : null
- updateData.banned_by = is_banned ? adminGuard.user.id : null
- }
+    const admin = createAdminClient()
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    }
+    
+    if (is_banned !== undefined) {
+      updateData.is_banned = is_banned
+      updateData.ban_reason = is_banned ? ban_reason : null
+      updateData.banned_at = is_banned ? new Date().toISOString() : null
+      updateData.banned_by = is_banned ? adminGuard.user.id : null
+    }
 
- if (role !== undefined) {
- updateData.role = role
- }
+    if (role !== undefined) {
+      updateData.role = role
+    }
 
- if (Object.keys(updateData).length === 0) {
- return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
- }
+    // Attempt the update using the Service Role Admin Client
+    const { error: updateError } = await admin
+      .from('profiles')
+      .update(updateData)
+      .eq('id', parsedParams.data.id)
 
- const { error } = await admin
- .from('profiles')
- .update(updateData)
- .eq('id', parsedParams.data.id)
+    if (updateError) {
+      console.error('Database update error:', updateError)
+      return NextResponse.json({ 
+        error: 'Database update failed', 
+        details: updateError.message,
+        hint: updateError.hint 
+      }, { status: 500 })
+    }
 
- if (error) throw error
-
- return NextResponse.json({ success: true })
- } catch (error) {
- console.error('Admin user patch failed:', error)
- return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
- }
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('Admin user patch failed:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    }, { status: 500 })
+  }
 }
