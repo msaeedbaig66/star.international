@@ -38,18 +38,17 @@ export default async function RootLayout({ children }: { children:React.ReactNod
  <html lang='en' className={inter.variable}>
  <head>
       <script
-        nonce={nonce}
- dangerouslySetInnerHTML={{
- __html: `
- (function() {
- try {
- document.documentElement.setAttribute('data-theme', 'light');
- localStorage.setItem('allpanga-theme', 'light');
- } catch (e) {}
- })();
- `,
- }}
- />
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('allpanga-theme', 'light');
+              } catch (e) {}
+            })();
+          `,
+        }}
+      />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
