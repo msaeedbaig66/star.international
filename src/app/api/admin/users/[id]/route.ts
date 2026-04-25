@@ -22,26 +22,31 @@ const deleteBodySchema = z.object({
 })
 
 async function requireAdmin() {
- const authClient = await createClient()
- const {
- data: { user },
- } = await authClient.auth.getUser()
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
 
- if (!user) {
- return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
- }
+  if (!user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
 
- const { data: profile } = await authClient
- .from('profiles')
- .select('role')
- .eq('id', user.id)
- .maybeSingle()
+  // Use admin client to verify the caller's own role to bypass any potential profile RLS
+  const adminClient = createAdminClient()
+  const { data: profile, error: profileError } = await adminClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
 
- if (profile?.role !== 'admin') {
- return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
- }
+  if (profileError) {
+    console.error('requireAdmin: Profile check failed:', profileError)
+    return { error: NextResponse.json({ error: 'Internal server error', details: profileError.message }, { status: 500 }) }
+  }
 
- return { user }
+  if (profile?.role !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden', message: 'Admin role required' }, { status: 403 }) }
+  }
+
+  return { user }
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
