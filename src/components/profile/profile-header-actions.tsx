@@ -37,9 +37,9 @@ export function ProfileHeaderActions({
       
       const thread = await res.json()
       if (thread.data && thread.data.thread_id) {
-        router.push(`/dashboard?tab=messages&threadId=${thread.data.thread_id}`)
+        window.location.href = `/dashboard?tab=messages&threadId=${thread.data.thread_id}`
       } else if (thread.id) {
-        router.push(`/dashboard?tab=messages&threadId=${thread.id}`)
+        window.location.href = `/dashboard?tab=messages&threadId=${thread.id}`
       }
     } catch (e) {
       console.error(e)
