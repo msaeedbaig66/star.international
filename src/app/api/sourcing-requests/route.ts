@@ -40,11 +40,19 @@ export async function POST(req: Request) {
         status: 'pending'
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
-      console.error('Sourcing Request Error:', error)
-      return NextResponse.json({ error: 'Failed to submit request to database' }, { status: 500 })
+      console.error('Sourcing Request Database Error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
+      return NextResponse.json({ 
+        error: 'Database error', 
+        details: error.message 
+      }, { status: 500 })
     }
 
     return NextResponse.json({ data, success: true })
