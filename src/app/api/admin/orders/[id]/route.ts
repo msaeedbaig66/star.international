@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
 const updateOrderSchema = z.object({
@@ -49,7 +50,10 @@ export async function PATCH(
  }
 
   // 3. Update Order
-  let { data, error } = await supabase
+  const adminClient = createAdminClient()
+  if (!adminClient) throw new Error('Admin client not configured')
+
+  let { data, error } = await adminClient
   .from('orders')
   .update(updateData)
   .eq('id', params.id)
@@ -59,7 +63,7 @@ export async function PATCH(
   if (error && error.message.includes('column') && error.message.includes('tracking_number')) {
     const fallbackData = { ...updateData }
     delete fallbackData.tracking_number
-    ;({ data, error } = await supabase
+    ;({ data, error } = await adminClient
       .from('orders')
       .update(fallbackData)
       .eq('id', params.id)
