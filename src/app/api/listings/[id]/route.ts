@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { isAllowedListingImageUrl } from '@/lib/security/media-urls'
 import { deleteImagesByUrls } from '@/lib/cloudinary-server'
 
-const ADVANCED_LISTING_COLUMNS = ['listing_type', 'rental_price', 'rental_period', 'rental_deposit', 'contact_preference'] as const
+const ADVANCED_LISTING_COLUMNS = ['listing_type', 'rental_price', 'rental_period', 'rental_deposit', 'contact_preference', 'is_official', 'variants'] as const
 const LISTING_SELECT = '*, seller:profiles!listings_seller_id_fkey(username, avatar_url, full_name)'
 
 function isMissingAdvancedColumnError(error: any) {

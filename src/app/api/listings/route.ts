@@ -5,7 +5,7 @@ import { isAllowedListingImageUrl } from '@/lib/security/media-urls'
 import { toTsQuery } from '@/lib/search-ranking'
 import { performModeration } from '@/lib/moderation'
 
-const ADVANCED_LISTING_COLUMNS = ['listing_type', 'rental_price', 'rental_period', 'rental_deposit', 'contact_preference'] as const
+const ADVANCED_LISTING_COLUMNS = ['listing_type', 'rental_price', 'rental_period', 'rental_deposit', 'contact_preference', 'is_official', 'variants'] as const
 const LISTING_FEED_SELECT = `
  id,
  seller_id,
@@ -22,7 +22,6 @@ const LISTING_FEED_SELECT = `
  listing_type,
  rental_price,
  rental_period,
- is_official,
  seller:profiles!listings_seller_id_fkey(username, avatar_url, full_name, role)
 `
 const DEFAULT_PAGE_SIZE = 20
