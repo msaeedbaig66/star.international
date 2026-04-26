@@ -166,7 +166,7 @@ export default async function ListingDetailPage({
  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-4">
  <div>
  <span className="text-primary font-bold text-xs tracking-widest uppercase mb-2 block">{listing.category || 'General'}</span>
- <h1 className="text-3xl font-extrabold text-on-surface tracking-tight mb-2">{listing.title}</h1>
+ <h1 className="text-3xl font-extrabold text-on-surface tracking-tight mb-2 break-words">{listing.title}</h1>
  <div className="flex items-center gap-3">
  <div className="flex items-center text-primary">
  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>

@@ -26,9 +26,12 @@ export default async function CheckoutPage({
  .eq('id', params.id)
  .single();
 
- if (error || !listing || listing.seller.role !== 'admin') {
- return notFound();
- }
+  const isOfficialSeller = listing?.seller?.role === 'admin' || listing?.seller?.role === 'subadmin';
+  const isOfficialListing = listing?.is_official === true;
+
+  if (error || !listing || (!isOfficialSeller && !isOfficialListing)) {
+    return notFound();
+  }
 
  // 2. Fetch buyer profile for pre-filling
  const { data: profile } = await supabase
