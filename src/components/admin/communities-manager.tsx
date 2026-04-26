@@ -137,12 +137,14 @@ export function CommunitiesManager({ initialCommunities, stats }: CommunitiesMan
  const response = await fetch(`/api/communities/${id}`, { method: 'DELETE' });
  const result = await response.json().catch(() => ({}));
  if (!response.ok) throw new Error(result?.error || 'Failed to delete community');
- const next = result?.data || {};
- const current = communities.find((item) => item.id === id);
- updateCommunityLocally(id, {
- moderation: next.moderation || current?.moderation || 'rejected',
- rejection_note: next.rejection_note ?? current?.rejection_note ?? null,
- });
+ 
+ // Actually remove it from state so it disappears from ALL views immediately
+ setCommunities(prev => prev.filter(c => c.id !== id));
+ if (selectedItem?.id === id) {
+   setIsPanelOpen(false);
+   setSelectedItem(null);
+ }
+ 
  toast.success('Community permanently deleted from database.');
  } catch (error: any) {
  toast.error(error?.message || 'Unable to delete community');
