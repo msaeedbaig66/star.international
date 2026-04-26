@@ -112,16 +112,20 @@ export function CheckoutForm({
   </div>
   </div>
 
- <div>
- <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">Quantity</label>
- <select 
- value={formData.quantity}
- onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value)})}
- className="w-full p-4 bg-surface rounded-xl border border-border font-bold focus:ring-2 focus:ring-primary outline-none"
- >
- {[1, 2, 3, 4, 5, 10].map(n => <option key={n} value={n}>{n} unit{n > 1 ? 's' : ''}</option>)}
- </select>
- </div>
+  <div>
+  <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">Quantity</label>
+  <input 
+  type="number"
+  min="1"
+  value={formData.quantity}
+  onChange={(e) => {
+    const val = parseInt(e.target.value)
+    setFormData({...formData, quantity: isNaN(val) ? 1 : Math.max(1, val)})
+  }}
+  className="w-full p-4 bg-surface rounded-xl border border-border font-bold focus:ring-2 focus:ring-primary outline-none"
+  placeholder="Enter quantity"
+  />
+  </div>
 
  <div>
  <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">Delivery Service</label>

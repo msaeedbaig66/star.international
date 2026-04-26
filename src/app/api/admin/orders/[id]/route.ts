@@ -26,7 +26,7 @@ export async function PATCH(
  .eq('id', user.id)
  .single()
 
- if (profile?.role !== 'admin') {
+  if (profile?.role !== 'admin' && profile?.role !== 'subadmin') {
  return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
  }
 
@@ -40,26 +40,36 @@ export async function PATCH(
 
  const { status, trackingNumber } = parsed.data
  
- const updateData: any = { 
- status, 
- updated_at: new Date().toISOString() 
- }
+  const updateData: any = { 
+  status
+  }
  
  if (trackingNumber !== undefined) {
  updateData.tracking_number = trackingNumber
  }
 
- // 3. Update Order
- const { data, error } = await supabase
- .from('orders')
- .update(updateData)
- .eq('id', params.id)
- .select()
- .single()
+  // 3. Update Order
+  let { data, error } = await supabase
+  .from('orders')
+  .update(updateData)
+  .eq('id', params.id)
+  .select()
+  .single()
 
- if (error) throw error
+  if (error && error.message.includes('column') && error.message.includes('tracking_number')) {
+    const fallbackData = { ...updateData }
+    delete fallbackData.tracking_number
+    ;({ data, error } = await supabase
+      .from('orders')
+      .update(fallbackData)
+      .eq('id', params.id)
+      .select()
+      .single())
+  }
 
- return NextResponse.json({ success: true, data })
+  if (error) throw error
+
+  return NextResponse.json({ success: true, data })
 
  } catch (error: any) {
  console.error('Admin order update error:', error)

@@ -187,8 +187,25 @@ export async function POST(request: Request) {
   moderationReason = modResult.reason
   }
 
- const payload = {
- seller_id: user.id,
+  let finalSellerId = user.id
+
+  // If subadmin posts an official item, assign it to the main admin
+  if (finalIsOfficial && userRole === 'subadmin') {
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
+    
+    if (adminProfile) {
+      finalSellerId = adminProfile.id
+    }
+  }
+
+  const payload = {
+  seller_id: finalSellerId,
  title,
  description,
  price,
