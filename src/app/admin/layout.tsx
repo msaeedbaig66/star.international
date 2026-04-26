@@ -42,8 +42,8 @@ export default async function AdminLayout({
     redirect('/banned');
   }
 
-  // "just on admin email login" - if they aren't an admin or subadmin, kick them out immediately
-  if (profile?.role !== 'admin' && profile?.role !== 'subadmin') {
+  // "just on admin email login" - if they aren't an admin, kick them out immediately
+  if (profile?.role !== 'admin') {
     redirect('/');
   }
 
