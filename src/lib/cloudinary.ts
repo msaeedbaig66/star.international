@@ -21,7 +21,7 @@ export async function uploadToCloudinary(file: File, category: string = 'others'
     maxSizeKB = 500 // 500 KB for blog content
     label = "Optimizing Blog Content..."
   } else if (['listings', 'chats', 'community_posts', 'others'].includes(category)) {
-    maxSizeKB = 250 // 250 KB for marketplace items and chats
+    maxSizeKB = 400 // 400 KB for marketplace items and chats
     label = category === 'others' ? 'Uploading file...' : 'Optimizing asset...'
   }
 

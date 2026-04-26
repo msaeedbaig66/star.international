@@ -118,35 +118,24 @@ export function FloatingMessenger({ userId, profile }: FloatingMessengerProps) {
  }
 
  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
- const file = e.target.files?.[0]
- if (!file || !activeThreadId) return
+  const file = e.target.files?.[0]
+  if (!file || !activeThreadId) return
 
- // 10MB limit (matching platform constants)
- if (file.size > 10 * 1024 * 1024) {
- toast.error("File too large. Max 10MB allowed.")
- return;
- }
+  // 50MB absolute limit (auto-compressed down)
+  if (file.size > 50 * 1024 * 1024) {
+  toast.error("File too large. Max 50MB allowed.")
+  return;
+  }
 
- setIsUploading(true)
- try {
- const formData = new FormData()
- formData.append('file', file)
- formData.append('category', 'messages')
-
- const res = await fetch('/api/upload', {
- method: 'POST',
- body: formData
- })
- const data = await res.json()
- if (data.url) {
- await handleSendMessage(undefined, data.url)
- } else {
- toast.error(data.error || "Upload failed")
- }
- } catch (err) {
- console.error(err)
- toast.error("Upload error")
- } finally {
+  setIsUploading(true)
+  try {
+  const { uploadToCloudinary } = await import('@/lib/cloudinary')
+  const url = await uploadToCloudinary(file, 'messages')
+  await handleSendMessage(undefined, url)
+  } catch (err: any) {
+  console.error(err)
+  toast.error(err.message || "Upload error")
+  } finally {
  setIsUploading(false)
  if (fileInputRef.current) fileInputRef.current.value = ''
  }

@@ -13,7 +13,8 @@ CREATE OR REPLACE FUNCTION check_profile_permissions()
 RETURNS TRIGGER AS $$
 BEGIN
   -- 1. Prevent non-admins from changing their own role or verification status
-  IF (auth.jwt() ->> 'role' <> 'admin') THEN
+  -- (Allow 'service_role' to bypass so the backend API can perform updates)
+  IF (auth.jwt() ->> 'role' <> 'admin' AND auth.jwt() ->> 'role' <> 'service_role') THEN
     IF (OLD.role <> NEW.role) THEN
       RAISE EXCEPTION 'Only admins can change user roles';
     END IF;
@@ -26,7 +27,7 @@ BEGIN
   END IF;
 
   -- 2. Ensure users can only update their own profile (safety fallback for RLS)
-  IF (auth.uid() <> NEW.id AND auth.jwt() ->> 'role' <> 'admin') THEN
+  IF (auth.uid() <> NEW.id AND auth.jwt() ->> 'role' <> 'admin' AND auth.jwt() ->> 'role' <> 'service_role') THEN
     RAISE EXCEPTION 'Unauthorized profile update attempt';
   END IF;
 
@@ -113,5 +114,10 @@ CREATE TABLE IF NOT EXISTS security_audit_logs (
 
 ALTER TABLE security_audit_logs ENABLE ROW LEVEL SECURITY;
 -- Only admins can read logs
+DROP POLICY IF EXISTS "admin_read_logs" ON security_audit_logs;
 CREATE POLICY "admin_read_logs" ON security_audit_logs 
   FOR SELECT USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+
+-- 6. Add Sub-Admin Role
+-- ============================================================================
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'subadmin';

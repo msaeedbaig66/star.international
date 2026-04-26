@@ -38,8 +38,8 @@ export async function getAuthorizedAdminClient() {
  .eq('id', user.id)
  .single()
 
- if (dbError || profile?.role !== 'admin') {
- throw new Error('Access denied: Admin role required')
+ if (dbError || (profile?.role !== 'admin' && profile?.role !== 'subadmin')) {
+ throw new Error('Access denied: Admin or Sub-Admin role required')
  }
 
  const adminClient = createAdminClient()

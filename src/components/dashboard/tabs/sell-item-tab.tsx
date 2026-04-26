@@ -302,7 +302,8 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  }
 
  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
- const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+ // 50MB absolute max limit before auto-compression kicks in
+ const MAX_SIZE = 50 * 1024 * 1024
 
  const newImages: string[] = []
  for (const file of filesToUpload) {
@@ -312,8 +313,9 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setError(`File ${file.name} is not a supported format. Please use JPG, PNG, or WEBP.`)
  continue
  }
+ 
  if (file.size > MAX_SIZE) {
- setError(`File ${file.name} is too large. Maximum size is 5MB.`)
+ setError(`File ${file.name} is too large. Absolute maximum size is 50MB.`)
  continue
  }
 
