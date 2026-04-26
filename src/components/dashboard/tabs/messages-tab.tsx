@@ -518,39 +518,67 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  }
 
  const handleSend = async (attachmentUrl?: string) => {
- if (!activeThread || counterpartDeleted || isBlockedByUs) return
- if (!newMessage.trim() && !attachmentUrl) return
+  if (!activeThread || counterpartDeleted || isBlockedByUs) return
+  if (!newMessage.trim() && !attachmentUrl) return
 
- setSending(true)
- setSendError(null)
+  const messageText = newMessage.trim()
+  const tempId = `temp-${Date.now()}`
+  const replyingToSnapshot = replyingTo
+  
+  // Optimistic UI Update - instantly add the message
+  const optimisticMessage = {
+    id: tempId,
+    thread_id: activeThread,
+    content: messageText,
+    attachment_url: attachmentUrl,
+    parent_id: replyingToSnapshot?.id,
+    created_at: new Date().toISOString(),
+    sender_id: profile.id,
+    is_read: false,
+    reactions: {},
+    parent: replyingToSnapshot ? {
+      id: replyingToSnapshot.id!,
+      content: replyingToSnapshot.content,
+      sender: null
+    } : null
+  }
+  
+  addMessage(optimisticMessage as any)
+  setNewMessage('')
+  setSelectedFile(null)
+  setFilePreview(null)
+  setReplyingTo(null)
+  setSendError(null)
 
- try {
- const res = await fetch(`/api/messages/${activeThread}`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ 
- content: newMessage.trim(),
- attachment_url: attachmentUrl,
- parent_id: replyingTo?.id,
- is_anonymous: false
- }),
- })
+  // Send to server in the background
+  try {
+    const res = await fetch(`/api/messages/${activeThread}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        content: messageText,
+        attachment_url: attachmentUrl,
+        parent_id: replyingToSnapshot?.id,
+        is_anonymous: false
+      }),
+    })
 
- if (!res.ok) {
- const json = await res.json()
- throw new Error(json.error || 'Failed to send message')
- }
-
- setNewMessage('')
- setSelectedFile(null)
- setFilePreview(null)
- setReplyingTo(null)
- } catch (error: any) {
- console.error('Failed to send message:', error)
- setSendError(error?.message || 'Failed to send message. Please try again.')
- } finally {
- setSending(false)
- }
+    if (!res.ok) {
+      const json = await res.json()
+      throw new Error(json.error || 'Failed to send message')
+    }
+    
+    const { data } = await res.json()
+    
+    // Replace the temporary optimistic ID with the real database ID and data
+    updateMessage(tempId, data)
+  } catch (error: any) {
+    console.error('Failed to send message:', error)
+    // Rollback optimistic update
+    removeMessage(tempId)
+    setSendError(error?.message || 'Failed to send message. Please try again.')
+    if (!attachmentUrl) setNewMessage(messageText) // Restore text
+  }
  }
 
  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -837,26 +865,26 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  ) : (
  <div className="flex-1 overflow-y-auto">
  {filteredThreads.length === 0 && !isNewMessageMode && (
- <div className="px-10 py-20 text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
- <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
- <span className="material-symbols-outlined text-4xl">chat_bubble</span>
- </div>
- <div>
- <h5 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 mb-1">Quiet in here</h5>
- <p className="text-[11px] font-medium text-slate-400 max-w-[160px] mx-auto leading-relaxed">
- Your active conversations will appear here.
- </p>
- </div>
- <button
- onClick={() => setIsNewMessageMode(true)}
- className="mt-2 px-8 py-3.5 rounded-full bg-emerald-600 text-[11px] font-black text-white uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
- >
- Start Chat
- </button>
- </div>
- )}
-
-
+  <div className="px-8 py-20 flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500 h-full">
+  <div className="relative mb-6">
+  <div className="absolute inset-0 bg-emerald-100 rounded-full blur-2xl opacity-50"></div>
+  <div className="relative w-24 h-24 bg-white rounded-[2rem] shadow-premium flex items-center justify-center border-premium rotate-3 hover:rotate-0 transition-transform duration-300">
+  <span className="material-symbols-outlined text-[48px] text-emerald-600">forum</span>
+  </div>
+  </div>
+  <h5 className="font-black text-lg text-slate-900 tracking-tight uppercase mb-2">No Conversations Yet</h5>
+  <p className="text-sm font-medium text-slate-500 max-w-[220px] mx-auto leading-relaxed mb-6">
+  Start connecting with other students for projects, tutoring, or marketplace items.
+  </p>
+  <button
+  onClick={() => setIsNewMessageMode(true)}
+  className="px-8 py-4 rounded-2xl bg-emerald-600 text-sm font-black text-white uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-premium active:scale-95 flex items-center gap-2"
+  >
+  <span className="material-symbols-outlined text-[20px]">edit_square</span>
+  Start a Chat
+  </button>
+  </div>
+  )}
 
  {filteredThreads.map((thread) => (
  <ThreadItem
@@ -882,13 +910,16 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  )}
  >
  {!activeThread ? (
- <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
- <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-slate-100">
- <span className="material-symbols-outlined text-5xl text-emerald-600">forum</span>
- </div>
- <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Select a thread</h3>
- <p className="text-slate-500 text-sm max-w-xs font-medium">Choose a conversation from the sidebar to continue your discussion.</p>
- </div>
+  <div className="flex-1 flex flex-col items-center justify-center text-center p-10 bg-slate-50 relative overflow-hidden">
+  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-50 rounded-full blur-[100px] opacity-50 mix-blend-multiply pointer-events-none" />
+  <div className="relative z-10 flex flex-col items-center">
+  <div className="w-28 h-28 bg-white rounded-[2rem] flex items-center justify-center mb-8 shadow-premium border-premium transform -rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105">
+  <span className="material-symbols-outlined text-[56px] text-emerald-600 font-light">mark_chat_unread</span>
+  </div>
+  <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">Select a Thread</h3>
+  <p className="text-slate-500 text-base max-w-sm font-medium leading-relaxed">Choose a conversation from the sidebar to continue your discussion or start a new one.</p>
+  </div>
+  </div>
  ) : (
  <>
  <div className="h-20 bg-white/80 backdrop-blur-3xl px-6 border-b border-slate-200 flex items-center gap-4 shrink-0 transition-all z-10">
@@ -956,14 +987,17 @@ export function MessagesTab({ profile, initialThreadId, onOpenSidebar }: Message
  className="flex-1 overflow-y-auto px-6 py-10 space-y-6 scrollbar-hide active:scrollbar-default"
  >
  {loading ? (
- <div className="space-y-6 animate-pulse">
- {[1, 2, 3].map(i => (
- <div key={i} className={cn("flex flex-col gap-2", i % 2 === 0 ? "items-end" : "items-start")}>
- <div className={cn("h-12 w-48 bg-slate-200 rounded-2xl", i % 2 === 0 ? "rounded-tr-md" : "rounded-tl-md")} />
- <div className="h-3 w-20 bg-slate-100 rounded" />
- </div>
- ))}
- </div>
+  <div className="space-y-8 animate-pulse pt-4">
+  {[1, 2, 3, 4].map(i => (
+  <div key={i} className={cn("flex flex-col gap-2 w-full", i % 2 === 0 ? "items-end" : "items-start")}>
+  <div className={cn(
+    "h-16 w-3/4 sm:w-1/2 skeleton-lumina rounded-[20px]", 
+    i % 2 === 0 ? "rounded-tr-md" : "rounded-tl-md"
+  )} />
+  <div className="h-3 w-16 skeleton-lumina rounded-full opacity-60" />
+  </div>
+  ))}
+  </div>
  ) : (
  <>
  {hasMore && (

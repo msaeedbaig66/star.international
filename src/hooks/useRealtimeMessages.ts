@@ -178,6 +178,20 @@ export function useRealtimeMessages(threadId: string | null) {
               };
               setMessages((prev) => {
                 if (prev.find(m => m.id === normalizedMessage.id)) return prev;
+                
+                // Deduplicate against optimistic messages
+                const optimisticIndex = prev.findIndex(m => 
+                  m.id.startsWith('temp-') && 
+                  m.content === normalizedMessage.content && 
+                  m.sender_id === normalizedMessage.sender_id
+                );
+                
+                if (optimisticIndex !== -1) {
+                  const next = [...prev];
+                  next[optimisticIndex] = normalizedMessage;
+                  return next;
+                }
+                
                 return [...prev, normalizedMessage];
               });
             }
