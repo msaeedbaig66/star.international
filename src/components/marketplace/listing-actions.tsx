@@ -9,22 +9,32 @@ export function ListingActions({
  initialIsSaved,
  isAdminSeller = false,
  price = 0,
- itemTitle = ''
+ itemTitle = '',
+ selectedVariantName,
+ hasVariants = false
 }: { 
  listingId: string, 
  sellerId: string, 
  initialIsSaved: boolean,
  isAdminSeller?: boolean,
  price?: number,
- itemTitle?: string
+ itemTitle?: string,
+ selectedVariantName?: string,
+ hasVariants?: boolean
 }) {
  const [isSaved, setIsSaved] = useState(initialIsSaved)
  const [saving, setSaving] = useState(false)
  const [messaging, setMessaging] = useState(false)
+ const [showVariantWarning, setShowVariantWarning] = useState(false)
  const router = useRouter()
 
  const handleOrderNow = () => {
- router.push(`/checkout/${listingId}`)
+  if (hasVariants && !selectedVariantName) {
+    setShowVariantWarning(true)
+    return
+  }
+  const url = `/checkout/${listingId}${selectedVariantName ? `?variant=${encodeURIComponent(selectedVariantName)}` : ''}`
+  router.push(url)
  }
 
  const handleMessageSeller = async () => {
@@ -70,6 +80,10 @@ export function ListingActions({
  serverStateRef.current = { saved: initialIsSaved }
  }, [initialIsSaved])
 
+ useEffect(() => {
+ if (selectedVariantName) setShowVariantWarning(false)
+ }, [selectedVariantName])
+
  const handleWishlistToggle = () => {
  // 1. Instant UI update
  const nextSaved = !isSaved
@@ -111,15 +125,20 @@ export function ListingActions({
 
  return (
  <div className="space-y-3">
- {isAdminSeller ? (
- <button 
- onClick={handleOrderNow}
- className={`w-full py-4 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white rounded-full font-bold text-lg hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 opacity-100`}
- >
- <span className="material-symbols-outlined">shopping_bag</span>
- Order This Item
- </button>
- ) : (
+  {showVariantWarning && (
+    <p className="text-[10px] font-black uppercase tracking-widest text-destructive text-center animate-bounce">
+      Please select an option above first
+    </p>
+  )}
+  {isAdminSeller ? (
+    <button 
+      onClick={handleOrderNow}
+      className={`w-full py-4 bg-gradient-to-br ${showVariantWarning ? 'from-destructive to-destructive/80' : 'from-emerald-600 to-emerald-700'} text-white rounded-full font-bold text-lg hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 opacity-100`}
+    >
+      <span className="material-symbols-outlined">shopping_bag</span>
+      {showVariantWarning ? 'Select Option' : 'Order This Item'}
+    </button>
+  ) : (
  <button 
  onClick={handleMessageSeller}
  disabled={messaging}

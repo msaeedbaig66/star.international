@@ -252,6 +252,7 @@ export async function getHomeFeedListingsV1({
  .select(FEED_LISTING_SELECT)
  .eq('moderation', 'approved')
  .eq('status', 'available')
+ .or('is_official.eq.false,is_official.is.null')
  .order('created_at', { ascending: false })
  .limit(fetchLimit)
 

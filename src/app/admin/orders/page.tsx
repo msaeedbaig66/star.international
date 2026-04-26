@@ -62,6 +62,12 @@ export default async function AdminOrdersPage() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-black text-text-primary truncate">{order.listing?.title}</p>
+                        {order.selected_variant_name && (
+                          <div className="flex items-center gap-1 text-[9px] font-black text-primary uppercase tracking-wider mb-1">
+                            <span className="material-symbols-outlined text-[10px]">sell</span>
+                            Option: {order.selected_variant_name}
+                          </div>
+                        )}
                         <p className="text-[10px] text-text-muted font-medium">{order.buyer_name || order.buyer?.full_name} • {order.shipping_city}</p>
                         {order.buyer_phone && (
                           <div className="flex items-center gap-2 mt-1">

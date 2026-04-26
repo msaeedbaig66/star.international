@@ -291,13 +291,13 @@ interface CategoryBreadcrumbProps {
 
 export function CategoryBreadcrumb({ crumbs, className }: CategoryBreadcrumbProps) {
   return (
-    <nav className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted mb-6 overflow-hidden", className)}>
+    <nav className={cn("flex items-center flex-wrap gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-widest text-text-muted mb-6 min-w-0", className)}>
       <Link href={ROUTES.home()} className="hover:text-primary transition-colors flex-shrink-0">Home</Link>
       {crumbs.map((crumb, idx) => (
         <React.Fragment key={idx}>
           <span className="material-symbols-outlined text-[12px] opacity-30 flex-shrink-0">chevron_right</span>
           {idx === crumbs.length - 1 ? (
-            <span className="text-text-primary truncate min-w-0 flex-1">{crumb.label}</span>
+            <span className="text-text-primary truncate min-w-0 flex-1 lg:max-w-md" title={crumb.label}>{crumb.label}</span>
           ) : (
             <Link href={crumb.href} className="hover:text-primary transition-colors flex-shrink-0 whitespace-nowrap">{crumb.label}</Link>
           )}

@@ -4,7 +4,13 @@ import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { CheckoutForm } from './checkout-form';
 
-export default async function CheckoutPage({ params }: { params: { id: string } }) {
+export default async function CheckoutPage({ 
+  params,
+  searchParams
+}: { 
+  params: { id: string },
+  searchParams: { variant?: string }
+}) {
 
  const supabase = await createClient();
  const { data: { user } } = await supabase.auth.getUser();
@@ -31,7 +37,12 @@ export default async function CheckoutPage({ params }: { params: { id: string } 
  .eq('id', user.id)
  .single();
 
- const price = Number(listing.listing_type === 'rent' ? (listing.rental_price || listing.price || 0) : (listing.price || 0));
+  const variants = (listing.variants as {name: string, price: number}[]) || [];
+  const selectedVariant = variants.find(v => v.name === searchParams.variant);
+
+  const price = selectedVariant 
+    ? selectedVariant.price 
+    : Number(listing.listing_type === 'rent' ? (listing.rental_price || listing.price || 0) : (listing.price || 0));
 
  return (
  <main className="min-h-screen pt-12 pb-24 px-6 bg-surface">
@@ -44,11 +55,12 @@ export default async function CheckoutPage({ params }: { params: { id: string } 
  <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
  {/* Left: Checkout Form */}
  <div className="lg:col-span-7">
- <CheckoutForm 
- listing={listing} 
- profile={profile || {}} 
- basePrice={price}
- />
+  <CheckoutForm 
+  listing={listing} 
+  profile={profile || {}} 
+  basePrice={price}
+  selectedVariantName={searchParams.variant}
+  />
  </div>
 
  {/* Right: Order Summary Sidebar */}

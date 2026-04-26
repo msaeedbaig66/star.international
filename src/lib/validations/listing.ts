@@ -18,6 +18,10 @@ export const baseListingSchema = z.object({
  rental_deposit: z.number().min(0).nullable().optional(),
  contact_preference: contactPreferenceSchema.default('chat'),
  is_official: z.boolean().optional().default(false),
+ variants: z.array(z.object({
+    name: z.string().min(1).max(100),
+    price: z.number().min(0)
+  })).optional().default([]),
 })
 
 export const listingSchema = baseListingSchema.superRefine((data, ctx) => {

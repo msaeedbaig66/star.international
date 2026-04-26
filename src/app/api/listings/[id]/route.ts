@@ -24,7 +24,9 @@ function stripAdvancedListingFields(payload: Record<string, any>) {
 async function getViewerRole(client: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data, error } = await client.from('profiles').select('role').eq('id', userId).maybeSingle()
   if (error) throw error
-  return data?.role === 'admin' ? 'admin' : 'user'
+  if (data?.role === 'admin') return 'admin'
+  if (data?.role === 'subadmin') return 'admin' // Treat subadmin as admin for listing operations
+  return 'user'
 }
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {

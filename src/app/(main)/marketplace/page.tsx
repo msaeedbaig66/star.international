@@ -91,8 +91,8 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     let query = supabase.from('listings').select(MARKETPLACE_LISTING_FEED_SELECT, { count: 'exact' })
     query = query.eq('moderation', 'approved').eq('status', 'available')
     
-    if (currentSource === 'store') query = query.eq('seller.role', 'admin')
-    else query = query.neq('seller.role', 'admin')
+    if (currentSource === 'store') query = query.eq('is_official', true)
+    else query = query.or('is_official.eq.false,is_official.is.null')
 
     if (searchParams.q) query = query.textSearch('search_vector', searchParams.q, { config: 'english', type: 'websearch' })
     if (currentCategory !== 'All') query = query.eq('category', currentCategory)

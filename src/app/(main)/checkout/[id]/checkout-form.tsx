@@ -4,7 +4,17 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/utils'
 
-export function CheckoutForm({ listing, profile, basePrice }: { listing: any, profile: any, basePrice: number }) {
+export function CheckoutForm({ 
+  listing, 
+  profile, 
+  basePrice,
+  selectedVariantName 
+}: { 
+  listing: any, 
+  profile: any, 
+  basePrice: number,
+  selectedVariantName?: string 
+}) {
  const router = useRouter()
  const [loading, setLoading] = useState(false)
  const [formData, setFormData] = useState({
@@ -70,7 +80,8 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
  totalAmount: total, 
  comment: formData.comment,
  buyerName: formData.fullName,
- buyerPhone: formData.phoneNumber
+ buyerPhone: formData.phoneNumber,
+ selectedVariantName: selectedVariantName
  })
  })
 
@@ -89,9 +100,17 @@ export function CheckoutForm({ listing, profile, basePrice }: { listing: any, pr
  <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-2xl border border-border shadow-sm">
  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
  <div className="md:col-span-2">
- <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-3">Professional Item</label>
- <h2 className="text-xl font-bold text-on-surface">{listing.title}</h2>
- </div>
+  <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-3">Professional Item</label>
+  <div className="flex flex-col gap-1">
+    <h2 className="text-xl font-bold text-on-surface">{listing.title}</h2>
+    {selectedVariantName && (
+      <span className="inline-flex items-center gap-1 text-sm font-black text-primary uppercase tracking-wider">
+        <span className="material-symbols-outlined text-sm">sell</span>
+        Option: {selectedVariantName}
+      </span>
+    )}
+  </div>
+  </div>
 
  <div>
  <label className="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">Quantity</label>

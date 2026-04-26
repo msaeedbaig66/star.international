@@ -144,7 +144,7 @@ export async function POST(request: Request) {
  const listingUsage = usageRes.count
  const userRole = profile?.role || 'user'
  const isAdmin = userRole === 'admin'
- const isPrivileged = isAdmin || userRole === 'moderator'
+ const isPrivileged = isAdmin || userRole === 'moderator' || userRole === 'subadmin'
 
  const listingLimit = Number((profile as any)?.listing_slot_limit || 5)
  if ((listingUsage || 0) >= listingLimit && !isPrivileged) {
@@ -160,10 +160,10 @@ export async function POST(request: Request) {
  }
 
  const { 
- title, description, price, category, condition, campus, images, 
- listing_type, rental_price, rental_period, rental_deposit, 
- contact_preference, is_official 
- } = result.data
+  title, description, price, category, condition, campus, images, 
+  listing_type, rental_price, rental_period, rental_deposit, 
+  contact_preference, is_official, variants
+  } = result.data
 
  const invalidImage = images.find((url) => !isAllowedListingImageUrl(url, user.id))
  if (invalidImage) {
@@ -202,6 +202,7 @@ export async function POST(request: Request) {
  rental_period: rental_period ?? null,
  rental_deposit: rental_deposit ?? null,
  contact_preference,
+ variants,
  moderation: moderationStatus,
  moderation_reason: moderationReason,
  is_official: finalIsOfficial,

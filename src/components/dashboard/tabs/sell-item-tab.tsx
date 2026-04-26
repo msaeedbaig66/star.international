@@ -39,6 +39,7 @@ interface SellItemDraft {
  contactPref: string
  updatedAt: string
  expiresAt: string
+ variants?: {name: string, price: number}[]
 }
 
 const CONDITIONS = ['new', 'like_new', 'good', 'fair', 'poor'] as const
@@ -93,6 +94,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  const [hasPublished, setHasPublished] = useState(false)
  const [isOfficial, setIsOfficial] = useState(false)
  const [moderationStatus, setModerationStatus] = useState<string | null>(null)
+ const [variants, setVariants] = useState<{name: string, price: number}[]>([])
 
  const draftKey = profile?.id ? `allpanga_sell_item_draft_${profile.id}` : null
 
@@ -111,6 +113,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setContactPref('chat')
  setIsOfficial(false)
  setModerationStatus(null)
+ setVariants([])
  setError('')
  }
 
@@ -137,6 +140,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  description,
  images,
  contactPref,
+ variants,
  updatedAt: new Date().toISOString(),
  expiresAt: new Date(Date.now() + DRAFT_TTL_MS).toISOString(),
  }
@@ -158,7 +162,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  } catch {
  return false
  }
- }, [title, category, condition, listingType, price, rentalPrice, rentalPeriod, rentalDeposit, campus, description, images, contactPref, draftKey, profile?.id, clearDraftFromLocal])
+ }, [title, category, condition, listingType, price, rentalPrice, rentalPeriod, rentalDeposit, campus, description, images, contactPref, variants, draftKey, profile?.id, clearDraftFromLocal])
 
  const loadListing = useCallback(async (id: string) => {
  const supabase = createClient()
@@ -184,6 +188,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setContactPref(data.contact_preference === 'phone' ? 'phone' : 'chat')
  setIsOfficial(!!data.is_official)
  setModerationStatus(data.moderation || 'pending')
+ setVariants(data.variants || [])
  setIsEditing(true)
  }
  }, [profile.id])
@@ -250,6 +255,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  setDescription(draft.description || '')
  setImages(Array.isArray(draft.images) ? draft.images : [])
  setContactPref(draft.contactPref || 'chat')
+ setVariants(Array.isArray(draft.variants) ? draft.variants : [])
  setDraftRestored(true)
  } catch {
  clearDraftFromLocal()
@@ -458,6 +464,12 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  return
  }
 
+ if (isOfficial && variants.some(v => !v.name.trim() || v.price < 0)) {
+ setError('All variant names must be filled and prices must be valid.')
+ setLoading(false)
+ return
+ }
+
  const listingData = {
  title,
  description,
@@ -472,6 +484,7 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  campus: campus || 'Main Campus',
  images,
  is_official: isOfficial,
+ variants: isOfficial ? variants : [],
  }
 
  try {
@@ -911,6 +924,68 @@ export function SellItemTab({ profile, editId }: SellItemTabProps) {
  </div>
  </div>
  </div>
+ )}
+
+ {/* Official Store Variants (Admin/Sub-Admin Only) */}
+ {isOfficial && (
+   <div className="space-y-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
+     <div className="flex items-center justify-between">
+       <label className="block text-sm font-bold uppercase tracking-wider text-text-muted">
+         Pricing Variants (Optional)
+       </label>
+       <button
+         type="button"
+         onClick={() => setVariants([...variants, { name: '', price: 0 }])}
+         className="text-xs font-black uppercase text-primary hover:text-primary/80 transition-colors"
+       >
+         + Add Variant
+       </button>
+     </div>
+     
+     {variants.length === 0 ? (
+       <p className="text-xs text-text-secondary">No variants added. Base price will be used.</p>
+     ) : (
+       <div className="space-y-3">
+         {variants.map((variant, index) => (
+           <div key={index} className="flex gap-3 items-center">
+             <input
+               value={variant.name}
+               onChange={(e) => {
+                 const newVariants = [...variants];
+                 newVariants[index].name = e.target.value;
+                 setVariants(newVariants);
+               }}
+               className="flex-1 px-4 py-3 rounded-lg border border-border bg-surface focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary outline-none transition-all text-sm"
+               placeholder="e.g. 1 Piece, Pack of 5"
+             />
+             <div className="relative w-32">
+               <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-text-muted text-xs">
+                 PKR
+               </span>
+               <input
+                 type="number"
+                 value={variant.price || ''}
+                 onChange={(e) => {
+                   const newVariants = [...variants];
+                   newVariants[index].price = Number(e.target.value);
+                   setVariants(newVariants);
+                 }}
+                 className="w-full pl-10 pr-3 py-3 rounded-lg border border-border bg-surface focus:ring-2 focus:ring-primary/50 focus:border-primary text-text-primary outline-none transition-all text-sm"
+                 placeholder="0"
+               />
+             </div>
+             <button
+               type="button"
+               onClick={() => setVariants(variants.filter((_, i) => i !== index))}
+               className="p-3 text-destructive hover:bg-destructive-light rounded-lg transition-colors flex items-center justify-center"
+             >
+               <span className="material-symbols-outlined text-[20px]">delete</span>
+             </button>
+           </div>
+         ))}
+       </div>
+     )}
+   </div>
  )}
 
  {/* Error */}

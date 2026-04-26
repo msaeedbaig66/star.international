@@ -30,7 +30,13 @@ function isMissingRelatedItemsColumnError(error: any) {
 
 export const revalidate = 0; // Ensure fresh data for status/moderation checks
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+export default async function ListingDetailPage({ 
+  params,
+  searchParams
+}: { 
+  params: { id: string },
+  searchParams: { variant?: string }
+}) {
 
  const supabase = await createClient();
  const { data: { user } } = await supabase.auth.getUser();
@@ -114,7 +120,14 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  const isOwnListing = user?.id === listing.seller_id;
 
  const images = (listing.images as string[]) || [];
- const displayPrice = listingType === 'rent' ? Number(listing.rental_price || 0) : Number(listing.price || 0);
+ const variants = (listing.variants as {name: string, price: number}[]) || [];
+ const selectedVariantName = searchParams.variant;
+ const selectedVariant = variants.find(v => v.name === selectedVariantName);
+
+ const displayPrice = selectedVariant 
+    ? selectedVariant.price 
+    : (listingType === 'rent' ? Number(listing.rental_price || 0) : Number(listing.price || 0));
+
  const listingTypeLabel = listingType === 'sell' ? 'For Sale' : listingType === 'rent' ? 'For Rent' : 'Sale or Rent';
  const rentalPeriodLabel = listing.rental_period === 'monthly' ? 'per month' : listing.rental_period === 'weekly' ? 'per week' : listing.rental_period === 'semester' ? 'per semester' : 'per day';
  
@@ -192,6 +205,42 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  {listing.description}
  </p>
  </section>
+
+  {variants.length > 0 && (
+    <section className="bg-surface-container-low p-8 rounded-2xl border border-border/50">
+      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+        <span className="material-symbols-outlined text-primary">sell</span>
+        Select Option
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {variants.map((v) => (
+          <Link
+            key={v.name}
+            href={`?variant=${encodeURIComponent(v.name)}`}
+            scroll={false}
+            className={`flex flex-col p-5 rounded-2xl border-2 transition-all group ${
+              selectedVariantName === v.name 
+                ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' 
+                : 'border-border bg-surface hover:border-primary/30 hover:bg-surface-container-high'
+            }`}
+          >
+            <div className="flex justify-between items-center mb-1">
+              <span className={`font-black uppercase tracking-wider text-xs ${selectedVariantName === v.name ? 'text-primary' : 'text-text-muted'}`}>
+                {v.name}
+              </span>
+              {selectedVariantName === v.name && (
+                <span className="material-symbols-outlined text-primary text-xl animate-in zoom-in duration-300">check_circle</span>
+              )}
+            </div>
+            <span className="text-xl font-black text-on-surface">
+              {formatPrice(v.price)}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )}
+
  <section>
  <h3 className="text-xl font-bold mb-6">Item Details</h3>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 text-sm">
@@ -270,6 +319,8 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
  isAdminSeller={listing.is_official || seller.role === 'admin'}
  price={displayPrice}
  itemTitle={listing.title}
+ selectedVariantName={selectedVariantName}
+ hasVariants={variants.length > 0}
  />
  <ListingRatingAction
  listingId={listing.id}

@@ -57,6 +57,7 @@ export async function CategoryRows({ user, savedIds = new Set() }: CategoryRowsP
  .select(HOME_LISTING_SELECT)
  .eq('moderation', 'approved')
  .eq('status', 'available')
+ .or('is_official.eq.false,is_official.is.null')
  .order('is_featured', { ascending: false })
  .order('created_at', { ascending: false })
  .limit(200)

@@ -13,7 +13,8 @@ const orderSchema = z.object({
  buyerName: z.string().trim().min(2).max(100),
  buyerPhone: z.string().trim().min(10).max(15),
  courierService: z.string().trim().max(50).default('TCS'),
- paymentMethod: z.string().trim().max(50).default('COD')
+ paymentMethod: z.string().trim().max(50).default('COD'),
+ selectedVariantName: z.string().trim().max(100).optional().nullable()
 })
 
 export async function POST(request: Request) {
@@ -48,13 +49,14 @@ export async function POST(request: Request) {
  buyerName,
  buyerPhone,
  courierService,
- paymentMethod
+ paymentMethod,
+ selectedVariantName
  } = parsed.data
 
  // 3. Verify Listing from Database
  const { data: listing, error: listingError } = await supabase
  .from('listings')
- .select('id, price, seller_id, title, status')
+ .select('id, price, seller_id, title, status, variants')
  .eq('id', listingId)
  .single()
 
@@ -67,7 +69,17 @@ export async function POST(request: Request) {
  }
 
  const sellerId = listing.seller_id
- const dbPrice = listing.price
+ let dbPrice = listing.price
+
+ // 3.5 Handle Variant Pricing
+ if (selectedVariantName) {
+   const variants = (listing.variants as any[]) || []
+   const variant = variants.find(v => v.name === selectedVariantName)
+   if (!variant) {
+     return NextResponse.json({ error: 'Selected variant is not valid for this item' }, { status: 400 })
+   }
+   dbPrice = variant.price
+ }
 
  // 4. Prevent self-ordering
  if (user.id === sellerId) {
@@ -109,6 +121,7 @@ export async function POST(request: Request) {
  payment_method: paymentMethod,
  buyer_name: buyerName,
  buyer_phone: buyerPhone,
+ selected_variant_name: selectedVariantName,
  status: 'pending'
  })
  .select()
@@ -130,6 +143,7 @@ export async function POST(request: Request) {
  // 8. Post automated message
  const orderMessage = `🚀 **NEW PROFESSIONAL ORDER**\n\n` +
  `Item: **${listing.title}**\n` +
+ (selectedVariantName ? `Option: **${selectedVariantName}**\n` : '') +
  `Quantity: **${quantity}**\n` +
  `Total: **Rs ${calculatedTotalAmount.toLocaleString()}**\n` +
  `Payment: **${paymentMethod}**\n` +

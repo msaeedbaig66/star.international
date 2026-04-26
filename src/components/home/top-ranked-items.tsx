@@ -89,6 +89,7 @@ async function fetchGenericFallbackListings(
  .from('listings')
  .select(selectClause)
  .eq('moderation', 'approved')
+ .or('is_official.eq.false,is_official.is.null')
  )
  .order('is_featured', { ascending: false })
  .order('created_at', { ascending: false })

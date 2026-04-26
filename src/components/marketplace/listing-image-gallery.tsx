@@ -124,12 +124,13 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
             onClick={(e) => e.stopPropagation()}
           >
             {activeImage ? (
-              <img
+              <Image
                 src={getOptimizedImageUrl(activeImage, 1600, 1600)}
                 alt={title}
                 className="max-w-full max-h-full object-contain shadow-2xl transition-all duration-300 animate-in zoom-in-95"
-                loading="eager"
-                style={{ display: 'block' }}
+                fill
+                priority
+                unoptimized // Keep original quality for zoom
               />
             ) : (
               <div className="text-white text-sm">Image not found</div>

@@ -67,6 +67,12 @@ export function TrackingTab({ profile }: { profile: any }) {
  #{order.id.slice(0, 8).toUpperCase()} • {new Date(order.created_at).toLocaleDateString()}
  </p>
  <h3 className="text-sm sm:text-lg font-black text-slate-900 truncate leading-tight uppercase leading-none">{order.listing?.title}</h3>
+ {order.selected_variant_name && (
+   <div className="flex items-center gap-1 text-[10px] font-black text-primary uppercase tracking-widest mt-1">
+     <span className="material-symbols-outlined text-[12px]">sell</span>
+     {order.selected_variant_name}
+   </div>
+ )}
  <div className="mt-2 text-sm sm:text-base font-black text-emerald-600">
  {formatPrice(order.total_amount)}
  </div>
