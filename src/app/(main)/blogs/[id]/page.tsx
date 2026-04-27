@@ -212,7 +212,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
           </div>
         )}
 
-        <header className="relative w-full max-w-[820px] mx-auto h-[360px] mt-[56px] overflow-hidden rounded-2xl shadow-xl">
+        <header className="relative w-full max-w-[820px] mx-auto h-[240px] md:h-[360px] mt-[56px] overflow-hidden rounded-2xl shadow-xl">
           <Image
             alt={blog.title}
             className="w-full h-full object-cover"
@@ -222,11 +222,11 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-          <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-7xl mx-auto right-0 z-10">
-            <span className="inline-block px-4 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold tracking-widest uppercase mb-4">
+          <div className="absolute bottom-0 left-0 w-full p-5 md:p-12 max-w-7xl mx-auto right-0 z-10">
+            <span className="inline-block px-4 py-1 rounded-full bg-primary-container text-on-primary-container text-[10px] md:text-xs font-bold tracking-widest uppercase mb-2 md:mb-4">
               {blog.field || 'General'}
             </span>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight max-w-4xl tracking-tight">
+            <h1 className="text-2xl md:text-5xl font-bold text-white mb-4 md:mb-6 leading-tight max-w-4xl tracking-tight">
               {blog.title}
             </h1>
             <div className="flex flex-wrap items-center gap-6 text-white/90">
@@ -316,7 +316,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
 
                   <BlogMediaEnhancer>
                     <div
-                      className="blog-html-content prose prose-lg sm:prose-xl max-w-none break-words overflow-x-hidden prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-[1.8] prose-strong:text-slate-900 prose-a:text-primary prose-img:rounded-3xl prose-img:shadow-2xl prose-img:my-16"
+                      className="blog-html-content prose prose-lg sm:prose-xl max-w-none break-words prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-[1.8] prose-strong:text-slate-900 prose-a:text-primary prose-img:rounded-3xl prose-img:shadow-2xl prose-img:my-16"
                       dangerouslySetInnerHTML={{ __html: contentWithIds }}
                     />
                   </BlogMediaEnhancer>

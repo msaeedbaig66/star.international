@@ -187,7 +187,24 @@ body {
 }
 
 .blog-html-content img {
- @apply transition-transform duration-300 hover:scale-[1.01];
+  @apply transition-transform duration-300 hover:scale-[1.01] rounded-2xl shadow-lg;
+  max-width: 100%;
+  height: auto !important;
+  display: block;
+  margin: 2rem auto;
+}
+
+.blog-html-content pre {
+  @apply bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-6 my-8 overflow-x-auto;
+  max-width: 100%;
+}
+
+.blog-html-content code {
+  @apply font-mono text-emerald-600 bg-emerald-50/50 px-1.5 py-0.5 rounded-md text-[0.9em];
+}
+
+.blog-html-content pre code {
+  @apply p-0 bg-transparent text-emerald-600 block leading-relaxed;
 }
 
 /* ── Tap Highlight Suppression ── */
