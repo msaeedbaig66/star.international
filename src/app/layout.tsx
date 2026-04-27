@@ -29,6 +29,7 @@ export const metadata: Metadata = {
 
 import { headers } from 'next/headers'
 
+import { PageReveal } from '@/components/shared/page-reveal'
 import { GlobalNotificationListener } from '@/components/shared/global-notification-listener'
 
 export default async function RootLayout({ children }: { children:React.ReactNode }) {
@@ -63,6 +64,23 @@ export default async function RootLayout({ children }: { children:React.ReactNod
     <link
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
       rel="stylesheet"
+      crossOrigin="anonymous"
+    />
+    <script
+      nonce={nonce}
+      dangerouslySetInnerHTML={{
+        __html: `
+          (function() {
+            if ('fonts' in document) {
+              document.documentElement.classList.add('fonts-loading');
+              document.fonts.load('1em "Material Symbols Outlined"').then(function() {
+                document.documentElement.classList.remove('fonts-loading');
+                document.documentElement.classList.add('fonts-loaded');
+              });
+            }
+          })();
+        `,
+      }}
     />
  {/* ── Performance: DNS prefetch for Supabase ── */}
  {(() => {
@@ -82,11 +100,13 @@ export default async function RootLayout({ children }: { children:React.ReactNod
  })()}
  </head>
  <body className='min-h-screen font-sans antialiased transition-colors duration-300'>
- <div className="page-entry min-h-screen flex flex-col bg-[var(--color-bg)]">
- <GlobalNotificationListener />
- <Toaster position='top-center' richColors />
- {children}
- </div>
+ <PageReveal>
+   <div className="page-entry min-h-screen flex flex-col bg-[var(--color-bg)]">
+     <GlobalNotificationListener />
+     <Toaster position='top-center' richColors />
+     {children}
+   </div>
+ </PageReveal>
  </body>
  </html>
  )

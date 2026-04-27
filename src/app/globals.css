@@ -48,26 +48,38 @@ body {
  @apply font-black tracking-tight;
  }
 
- /* Material Symbols Visibility Fix */
- .material-symbols-outlined {
- font-family: 'Material Symbols Outlined';
- font-weight: normal;
- font-style: normal;
- font-size: 24px;
- font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
- display: inline-flex;
- align-items: center;
- justify-content: center;
- line-height: 1;
- letter-spacing: normal;
- text-transform: none;
- white-space: nowrap;
- word-wrap: normal;
- direction: ltr;
- -webkit-font-feature-settings: 'liga';
- -webkit-font-smoothing: antialiased;
- font-feature-settings: 'liga';
- }
+  /* Material Symbols Visibility Fix: Prevents "favorite" or "visibility" from flickering as text */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+    
+    /* Premium Flickering Suppression */
+    overflow: hidden;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Font Loading State: Hide text until font is ready */
+  .fonts-loading .material-symbols-outlined {
+    color: transparent !important;
+  }
+  .fonts-loaded .material-symbols-outlined {
+    transition: color 0.3s ease;
+  }
 }
 
 @layer components {
@@ -184,13 +196,14 @@ body {
 }
 
 /* ── Custom Selection ── */
-/* ── Page Entry Animation ── */
+/* ── Page Entry Animation: Professional Reveal ── */
 .page-entry {
- animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: premium-reveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  will-change: opacity, transform;
 }
-@keyframes fade-in-up {
- from { opacity: 0; transform: translateY(10px); }
- to { opacity: 1; transform: translateY(0); }
+@keyframes premium-reveal {
+  0% { opacity: 0; transform: translateY(15px) scale(0.99); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
 /* ── Image Reveal Animation ── */

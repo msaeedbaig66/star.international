@@ -7,6 +7,41 @@ import { MarketplaceViewShell } from '@/components/marketplace/marketplace-view-
 import { SourcingBanner } from '@/components/marketplace/sourcing-banner'
 import type { Listing, Blog, Community } from '@/types/database'
 
+/** Fisher-Yates shuffle — truly random per visit */
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+/** Lightweight marketplace ranking — featured + freshness + engagement */
+function rankByEngagement(items: any[]): any[] {
+  const now = Date.now()
+  return [...items]
+    .map(item => {
+      let score = 0
+      // Featured boost
+      if (item.is_featured) {
+        const until = Date.parse(item.featured_until || '')
+        score += (Number.isFinite(until) && until > now) ? 200 : 100
+      }
+      // Freshness: exponential decay over 14 days
+      const created = new Date(item.created_at).getTime()
+      if (Number.isFinite(created)) {
+        score += Math.exp(-Math.max(0, now - created) / (14 * 86_400_000)) * 50
+      }
+      // Engagement: views + saves
+      score += Math.min(30, Math.log1p(Number(item.view_count || 0)) * 5)
+      score += Math.min(20, Number(item.save_count || 0) * 3)
+      return { item, score }
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(e => e.item)
+}
+
 type MarketplaceSearchParams = {
   view?: 'items' | 'blogs' | 'communities'
   source?: 'store' | 'market'
@@ -101,30 +136,45 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     if (currentMin) query = query.gte('price', Number(currentMin))
     if (currentMax) query = query.lte('price', Number(currentMax))
     
-    if (sort === 'recommended') {
-      query = query
-        .order('is_featured', { ascending: false })
-        .order('view_count', { ascending: false })
+    // ── Algorithm + True Random Engine ──
+    const useAlgorithm = page === 1 && (sort === 'latest' || sort === 'recommended')
+    const useRandom = sort === 'random'
+
+    if (useAlgorithm) {
+      // Page 1: Fetch larger pool → rank by engagement → return top N
+      const ALGO_POOL = 100
+      const { data: poolData, count: poolCount } = await query
         .order('created_at', { ascending: false })
-    } else if (sort === 'random') {
-      const sortFields = ['id', 'created_at', 'price', 'view_count', 'title']
-      const randomField = sortFields[Math.floor(Math.random() * sortFields.length)]
-      const randomAsc = Math.random() > 0.5
-      query = query.order(randomField, { ascending: randomAsc })
+        .range(0, ALGO_POOL - 1)
+      dbResults = rankByEngagement(poolData || []).slice(0, limit)
+      totalCount = poolCount || 0
+    } else if (useRandom) {
+      // True random: fetch page chronologically then Fisher-Yates shuffle
+      const { data: pageData, count: pageCount } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to)
+      dbResults = shuffleArray(pageData || [])
+      totalCount = pageCount || 0
     } else if (sort === 'price_low') {
-      query = query.order('price', { ascending: true })
+      const { data: itemsData, count: itemsCount } = await query
+        .order('price', { ascending: true }).range(from, to)
+      dbResults = itemsData || []
+      totalCount = itemsCount || 0
     } else if (sort === 'price_high') {
-      query = query.order('price', { ascending: false })
+      const { data: itemsData, count: itemsCount } = await query
+        .order('price', { ascending: false }).range(from, to)
+      dbResults = itemsData || []
+      totalCount = itemsCount || 0
     } else {
-      query = query
+      // Page 2+ default: featured first, then chronological
+      const { data: itemsData, count: itemsCount } = await query
         .order('is_featured', { ascending: false })
         .order('featured_until', { ascending: false })
         .order('created_at', { ascending: false })
+        .range(from, to)
+      dbResults = itemsData || []
+      totalCount = itemsCount || 0
     }
-
-    const { data: itemsData, count: itemsCount } = await query.range(from, to)
-    dbResults = itemsData || []
-    totalCount = itemsCount || 0
   } else if (currentView === 'blogs') {
     const BLOG_SELECT = `
     id, author_id, title, excerpt, cover_image, field, 
@@ -141,28 +191,30 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     if (searchParams.q) query = query.textSearch('search_vector', searchParams.q, { config: 'english', type: 'websearch' })
     if (currentCategory !== 'All') query = query.eq('field', currentCategory)
 
-    if (sort === 'recommended') {
-      query = query
+    if (sort === 'random') {
+      // True random: fetch page then Fisher-Yates shuffle
+      const { data: blogsData, count: blogsCount } = await query
+        .order('created_at', { ascending: false }).range(from, to)
+      dbResults = shuffleArray(blogsData || [])
+      totalCount = blogsCount || 0
+    } else if (sort === 'recommended') {
+      const { data: blogsData, count: blogsCount } = await query
         .order('is_featured', { ascending: false })
         .order('view_count', { ascending: false })
         .order('like_count', { ascending: false })
         .order('created_at', { ascending: false })
-    } else if (sort === 'random') {
-      const blogFields = ['id', 'created_at', 'view_count', 'like_count', 'title']
-      const randomField = blogFields[Math.floor(Math.random() * blogFields.length)]
-      const randomAsc = Math.random() > 0.5
-      query = query.order(randomField, { ascending: randomAsc })
+        .range(from, to)
+      dbResults = blogsData || []
+      totalCount = blogsCount || 0
     } else {
-      query = query
+      const { data: blogsData, count: blogsCount } = await query
         .order('is_featured', { ascending: false })
         .order('featured_until', { ascending: false })
         .order('created_at', { ascending: false })
+        .range(from, to)
+      dbResults = blogsData || []
+      totalCount = blogsCount || 0
     }
-
-    const { data: blogsData, count: blogsCount } = await query.range(from, to)
-
-    dbResults = blogsData || []
-    totalCount = blogsCount || 0
   } else if (currentView === 'communities') {
     const COMMUNITY_SELECT = `
     *,
@@ -173,27 +225,29 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     if (searchParams.q) query = query.textSearch('search_vector', searchParams.q, { config: 'english', type: 'websearch' })
     if (currentCategory !== 'All') query = query.eq('field', currentCategory)
 
-    if (sort === 'recommended') {
-      query = query
+    if (sort === 'random') {
+      // True random: fetch page then Fisher-Yates shuffle
+      const { data: commData, count: commCount } = await query
+        .order('created_at', { ascending: false }).range(from, to)
+      dbResults = shuffleArray(commData || [])
+      totalCount = commCount || 0
+    } else if (sort === 'recommended') {
+      const { data: commData, count: commCount } = await query
         .order('is_featured', { ascending: false })
         .order('member_count', { ascending: false })
         .order('created_at', { ascending: false })
-    } else if (sort === 'random') {
-      const commFields = ['id', 'created_at', 'member_count', 'name']
-      const randomField = commFields[Math.floor(Math.random() * commFields.length)]
-      const randomAsc = Math.random() > 0.5
-      query = query.order(randomField, { ascending: randomAsc })
+        .range(from, to)
+      dbResults = commData || []
+      totalCount = commCount || 0
     } else {
-      query = query
+      const { data: commData, count: commCount } = await query
         .order('is_featured', { ascending: false })
         .order('featured_until', { ascending: false })
         .order('member_count', { ascending: false })
+        .range(from, to)
+      dbResults = commData || []
+      totalCount = commCount || 0
     }
-
-    const { data: commData, count: commCount } = await query.range(from, to)
-
-    dbResults = commData || []
-    totalCount = commCount || 0
   }
 
   const categories = CATEGORIES.map((name) => ({
@@ -225,27 +279,54 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
   return (
     <div className="bg-background min-h-screen">
-      <section className="bg-primary/5 border-b border-border py-6 sm:py-12 px-4 sm:px-8">
-        <div className="max-w-[1440px] mx-auto flex flex-col gap-4 sm:gap-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-xl sm:text-4xl font-black text-primary tracking-tight mb-1 sm:mb-3">
-                {currentView === 'items' ? 'Student Marketplace' : currentView === 'blogs' ? 'Academic Publications' : 'Student Communities'}
-              </h1>
-              <nav className="flex text-[9px] sm:text-sm font-bold text-text-muted gap-1.5 sm:gap-2 uppercase tracking-widest">
+      <section className="relative bg-[#0a0f1d] border-b border-white/5 py-12 sm:py-20 px-4 sm:px-8 overflow-hidden">
+        {/* Mesh Gradient Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse delay-700" />
+          <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-teal-500/10 rounded-full blur-[100px] animate-float" />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none" />
+        </div>
+
+        <div className="max-w-[1440px] mx-auto relative z-10 flex flex-col gap-6 sm:gap-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="space-y-6">
+              <nav className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">
                 <Link className="hover:text-primary transition-colors" href="/">Home</Link>
-                <span>{'>'}</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
                 <Link className="hover:text-primary transition-colors" href="/marketplace">Marketplace</Link>
                 {currentCategory !== 'All' && (
-                  <><span>{'>'}</span><span className="text-primary">{currentCategory}</span></>
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className="text-primary">{currentCategory}</span>
+                  </>
                 )}
               </nav>
+              
+              <div className="space-y-4">
+                <h1 className="text-4xl sm:text-7xl font-black text-white tracking-tighter leading-[0.9] uppercase">
+                  {currentView === 'items' ? (
+                    <>Student <span className="text-primary block sm:inline">Marketplace</span></>
+                  ) : currentView === 'blogs' ? (
+                    <>Academic <span className="text-primary block sm:inline">Journal</span></>
+                  ) : (
+                    <>Discovery <span className="text-primary block sm:inline">Hubs</span></>
+                  )}
+                </h1>
+                <p className="text-sm sm:text-lg text-white/40 font-bold max-w-xl leading-relaxed uppercase tracking-wider">
+                  The central nexus for university trade, knowledge sharing, and peer collaboration. 
+                  <span className="text-white/60"> Powered by intelligent discovery matrix v1.0.</span>
+                </p>
+              </div>
             </div>
             
             <Link href={currentView === 'items' ? "/dashboard?tab=sell" : currentView === 'blogs' ? "/dashboard?tab=blogs" : "/communities"}>
-              <button className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:px-8 sm:py-4 rounded-full bg-primary text-white font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg sm:gap-2 active:scale-95 transition-all">
-                <span className="material-symbols-outlined font-black text-xl sm:text-lg">add_circle</span>
-                <span className="hidden sm:inline">{currentView === 'items' ? 'Post Item' : currentView === 'blogs' ? 'Write Blog' : 'Create Hub'}</span>
+              <button className="group relative flex items-center justify-center px-10 py-5 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs shadow-[0_20px_50px_rgba(16,185,129,0.3)] active:scale-95 transition-all overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative flex items-center gap-3">
+                  <span className="material-symbols-outlined font-black text-xl">add_circle</span>
+                  <span>{currentView === 'items' ? 'Post New Listing' : currentView === 'blogs' ? 'Publish Article' : 'Initialize Hub'}</span>
+                </span>
               </button>
             </Link>
           </div>
@@ -263,15 +344,18 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         sort={sort}
         hideSourceToggles={currentView === 'communities'}
         filters={
-          <aside className="w-full xl:sticky xl:top-24 rounded-3xl border border-slate-200/60 bg-white shadow-xl shadow-slate-200/20 overflow-visible mb-8 xl:mb-0">
-            <div className="px-8 py-7 border-b border-slate-100">
+          <aside className="w-full xl:sticky xl:top-24 rounded-[2.5rem] border border-slate-200/60 glass-lumina shadow-2xl shadow-slate-200/20 overflow-hidden mb-8 xl:mb-0">
+            <div className="px-8 py-8 border-b border-slate-100">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Filters</h3>
-                <Link href="/marketplace" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-colors">
-                  Reset All
+                <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">Matrix Filters</h3>
+                <Link href="/marketplace" className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 hover:text-primary transition-colors">
+                  Reset Matrix
                 </Link>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1 font-bold uppercase tracking-widest">Discovery Matrix</p>
+              <p className="text-[10px] text-primary mt-1.5 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Discovery Parameters
+              </p>
             </div>
 
             <div className="p-8 space-y-9">

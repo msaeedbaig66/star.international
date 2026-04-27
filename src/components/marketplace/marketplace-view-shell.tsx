@@ -130,107 +130,112 @@ export function MarketplaceViewShell({
  {filters}
  </div>
 
- {/* Content Area */}
- <section className="flex-grow min-w-0">
- <div className="flex flex-col gap-6 mb-8">
- {/* Context Header */}
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white border border-border shadow-sm">
+  {/* Content Area */}
+  <section className="flex-grow min-w-0">
+  <div className="flex flex-col gap-6 mb-10">
+  {/* Context Header: Glass Lumina Matrix */}
+  <div className="sticky top-4 z-40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 p-5 sm:p-7 rounded-[2rem] glass-lumina shadow-2xl shadow-slate-200/40">
+  
+  {/* Group 1: Filter & Discovery Count */}
+  <div className="flex items-center gap-5">
+  <button 
+  onClick={() => setSidebarOpen(!isSidebarOpen)}
+  className={cn(
+  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg shrink-0 border-2",
+  isSidebarOpen 
+  ? "bg-slate-900 text-white border-slate-900 shadow-slate-900/20" 
+  : "bg-white text-slate-900 border-slate-100 hover:border-primary/50"
+  )}
+  >
+  <span className="material-symbols-outlined text-[22px] font-black">
+  {window.innerWidth < 1280 ? 'tune' : (isSidebarOpen ? 'keyboard_double_arrow_left' : 'keyboard_double_arrow_right')}
+  </span>
+  </button>
+  <div className="flex flex-col">
+  <div className="flex items-baseline gap-2">
+  <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">{totalCount}</span>
+  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">discoveries</span>
+  </div>
+  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary italic mt-1.5 flex items-center gap-2">
+    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+    Active Matrix
+  </p>
+  </div>
+  </div>
  
- {/* Group 1: Filter & Discovery Count */}
- <div className="flex items-center gap-4">
- <button 
- onClick={() => setSidebarOpen(!isSidebarOpen)}
- className={cn(
- "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shadow-sm border shrink-0",
- isSidebarOpen 
- ? "bg-primary text-white border-primary shadow-primary/20" 
- : "bg-surface text-text-primary border-border hover:border-primary/50"
- )}
- >
- <span className="material-symbols-outlined text-[20px] sm:text-[22px] font-black">
- {window.innerWidth < 1280 ? 'tune' : (isSidebarOpen ? 'keyboard_double_arrow_left' : 'keyboard_double_arrow_right')}
- </span>
- </button>
- <div className="flex flex-col">
- <div className="flex items-baseline gap-1.5">
- <span className="text-2xl sm:text-3xl font-black text-text-primary tracking-tighter tabular-nums leading-none">{totalCount}</span>
- <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-muted">discoveries</span>
- </div>
- <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-primary italic mt-0.5">Live Discovery Matrix</p>
- </div>
- </div>
-
- {/* Group 2: Controls Cluster (Toggles & Sort) */}
- <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 sm:gap-4 !ml-0 sm:!ml-auto">
+  {/* Group 2: Controls Cluster (Toggles & Sort) */}
+  <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-4 !ml-0 sm:!ml-auto">
+  
+  {/* Central Toggles: Tactile Feel */}
+  {!hideSourceToggles && (
+  <div className="flex p-1 bg-slate-100/50 rounded-2xl border border-slate-200/60 backdrop-blur-md flex-1 xs:flex-none">
+  {sourceOptions.map(opt => (
+  <Link
+  key={opt.value}
+  href={`${pathname}?${createQueryString('source', opt.value)}`}
+  className={cn(
+  "flex-1 xs:flex-none px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-2.5",
+  currentSource === opt.value 
+  ? "bg-white text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-200" 
+  : "text-slate-400 hover:text-slate-600"
+  )}
+  >
+  <span className="material-symbols-outlined text-[16px] font-bold">{opt.icon}</span>
+  <span>{opt.label}</span>
+  </Link>
+  ))}
+  </div>
+  )}
  
- {/* Central Toggles */}
- {!hideSourceToggles && (
- <div className="flex p-0.5 sm:p-1 bg-surface rounded-xl sm:rounded-2xl border border-border flex-1 xs:flex-none">
- {sourceOptions.map(opt => (
- <Link
- key={opt.value}
- href={`${pathname}?${createQueryString('source', opt.value)}`}
- className={cn(
- "flex-1 xs:flex-none px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
- currentSource === opt.value 
- ? "bg-primary text-white shadow-lg shadow-primary/20" 
- : "text-text-muted hover:text-text-primary"
- )}
- >
- <span className="material-symbols-outlined text-[14px] sm:text-[16px]">{opt.icon}</span>
- <span>{opt.label}</span>
- </Link>
- ))}
- </div>
- )}
-
- {/* Sort Control */}
- <div className="relative flex-1 xs:flex-none">
-   <button 
-     onClick={() => setSortOpen(!isSortOpen)}
-     className={cn(
-       "w-full xs:w-auto flex items-center justify-between xs:justify-start gap-3 bg-white border px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] transition-all shrink-0",
-       isSortOpen ? "border-primary ring-2 ring-primary/5 shadow-md" : "border-border hover:border-primary"
-     )}
-   >
-     <span className="truncate">
-       {sort === 'latest' ? 'New Arrivals' : sort === 'price_low' ? 'Price Low' : sort === 'price_high' ? 'Price High' : sort === 'random' ? 'Random' : sort === 'recommended' ? 'Recommended' : 'Featured'}
-     </span>
-     <span className={cn("material-symbols-outlined text-[16px] sm:text-[18px] text-primary transition-transform duration-300", isSortOpen && "rotate-180")}>expand_more</span>
-   </button>
-   
-   {isSortOpen && (
-     <>
-       {/* Backdrop to close on click outside */}
-       <div className="fixed inset-0 z-50" onClick={() => setSortOpen(false)} />
-       
-       <div className="absolute right-0 top-full mt-2 w-full xs:w-48 bg-white border border-border rounded-2xl shadow-xl z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-         {[
-           { l: 'New Arrivals', v: 'latest' },
-           { l: 'Recommended', v: 'recommended' },
-           { l: 'Random Discovery', v: 'random' },
-           { l: 'Price: Low-High', v: 'price_low' },
-           { l: 'Price: High-Low', v: 'price_high' },
-         ].map((s) => (
-           <Link
-             key={s.v}
-             href={`${pathname}?${createQueryString('sort', s.v)}`}
-             onClick={() => setSortOpen(false)}
-             className={cn(
-               "block w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-colors",
-               sort === s.v ? "text-primary bg-primary/5" : "text-text-secondary"
-             )}
-           >
-             {s.l}
-           </Link>
-         ))}
-       </div>
-     </>
-   )}
- </div>
- </div>
- </div>
- </div>
+  {/* Sort Control: Professional Dropdown */}
+  <div className="relative flex-1 xs:flex-none">
+    <button 
+      onClick={() => setSortOpen(!isSortOpen)}
+      className={cn(
+        "w-full xs:w-auto flex items-center justify-between xs:justify-start gap-4 bg-white border-2 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shrink-0 shadow-lg",
+        isSortOpen ? "border-slate-900 text-slate-900 shadow-slate-900/10" : "border-slate-100 text-slate-500 hover:border-primary/50"
+      )}
+    >
+      <span className="truncate">
+        {sort === 'latest' ? 'New Arrivals' : sort === 'price_low' ? 'Price Low' : sort === 'price_high' ? 'Price High' : sort === 'random' ? 'Random' : sort === 'recommended' ? 'Recommended' : 'Featured'}
+      </span>
+      <span className={cn("material-symbols-outlined text-[18px] text-primary transition-transform duration-500 ease-in-out", isSortOpen && "rotate-180")}>expand_more</span>
+    </button>
+    
+    {isSortOpen && (
+      <>
+        <div className="fixed inset-0 z-50" onClick={() => setSortOpen(false)} />
+        
+        <div className="absolute right-0 top-full mt-3 w-full xs:w-56 bg-white border border-slate-100 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.12)] z-[60] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300">
+          <div className="p-2">
+          {[
+            { l: 'New Arrivals', v: 'latest', i: 'new_releases' },
+            { l: 'Recommended', v: 'recommended', i: 'stars' },
+            { l: 'Random Discovery', v: 'random', i: 'shuffle' },
+            { l: 'Price: Low-High', v: 'price_low', i: 'arrow_downward' },
+            { l: 'Price: High-Low', v: 'price_high', i: 'arrow_upward' },
+          ].map((s) => (
+            <Link
+              key={s.v}
+              href={`${pathname}?${createQueryString('sort', s.v)}`}
+              onClick={() => setSortOpen(false)}
+              className={cn(
+                "flex items-center gap-3 w-full px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-widest rounded-xl transition-all",
+                sort === s.v ? "text-white bg-slate-900 shadow-lg" : "text-slate-500 hover:bg-slate-50"
+              )}
+            >
+              <span className="material-symbols-outlined text-lg">{s.i}</span>
+              {s.l}
+            </Link>
+          ))}
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+  </div>
+  </div>
+  </div>
 
  <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
  {children}
