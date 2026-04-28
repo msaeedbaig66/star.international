@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { listingSchema } from '@/lib/validations/listing'
 import { isAllowedListingImageUrl } from '@/lib/security/media-urls'
 import { toTsQuery } from '@/lib/search-ranking'
@@ -226,24 +226,25 @@ export async function POST(request: Request) {
  status: 'available',
  }
 
- let { data, error } = await supabase
- .from('listings')
- .insert(payload)
- .select()
- .single()
+  const queryClient = isPrivileged ? await createAdminClient() : supabase
+  let { data, error } = await queryClient
+  .from('listings')
+  .insert(payload)
+  .select()
+  .single()
 
- if (error && isMissingAdvancedColumnError(error)) {
- const fallbackPayload = stripAdvancedListingFields(payload)
- ;({ data, error } = await supabase
- .from('listings')
- .insert(fallbackPayload)
- .select()
- .single())
- }
+  if (error && isMissingAdvancedColumnError(error)) {
+  const fallbackPayload = stripAdvancedListingFields(payload)
+  ;({ data, error } = await queryClient
+  .from('listings')
+  .insert(fallbackPayload)
+  .select()
+  .single())
+  }
 
- if (error) throw error
+  if (error) throw error
 
- return NextResponse.json({ data, error: null }, { status: 201 })
+  return NextResponse.json({ data, error: null }, { status: 201 })
  } catch (error: any) {
  console.error('Listings POST error:', error)
  return NextResponse.json({ data: null, error: error.message || 'Failed to create listing' }, { status: 500 })
